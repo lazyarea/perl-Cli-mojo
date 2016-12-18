@@ -12,6 +12,7 @@ use constant DBPASSWD => 'eccube';
 
 
 sub new {
+    # SEE: http://mojolicious.org/perldoc/Mojo/Pg/Database
     # SEE: http://mojolicious.org/perldoc/Mojo/Pg
     my $self = shift;
     my $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
