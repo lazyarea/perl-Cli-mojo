@@ -142,45 +142,24 @@ sub create_or_updateProductStock
 {
     my ($pg, $line, $prod_id, $prod_class_id) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
-    my $data_sql = "select s.product_class_id from dtb_product_class AS c";
-    $data_sql .= " LEFT JOIN dtb_product_stock AS s ON c.product_class_id = s.product_class_id";
-    $data_sql .= " WHERE 1=1";
-    $data_sql .= " AND product_code='$line->[6]'";
-    my $data = $pg->db->query($data_sql);
-    # Stock not found, then find prod_class_id
-    if (!$data->hash->{'product_class_id'}){
-        my $cls_sql = 'SELECT product_id, product_class_id  from dtb_product_class';
-        $cls_sql .= ' WHERE 1=1';
-        $cls_sql .= " AND product_code='$line->[6]'";
-        my $prod_class = undef;
-        eval{
-            $prod_class = $pg->db->query($cls_sql);
-            # ここで詰まってる.
-            # stockだけレコードがない場合作りに行く
-            #$prod_id =  $prod_class->hash->{'product_id'};
-            #$prod_class_id = $prod_class->hash->{'product_class_id'};
-        };
-        if ($@){
-            $utils->logger($@);
-            $utils->logger($cls_sql);
-            return undef;
-        }
-        #warn Dumper  $prod_class->hash;
-        #warn Dumper  $prod_class->hash->{'product_id'};
-        #warn Dumper  $prod_class->hash->{'product_class_id'};
+    # 更新対象のstockを探す
+    my $stock = ImportCsv::Data::Dtb::ProductStock->new;
+    my $st_dta = undef;
+    $st_dta = $stock->findByProductCode($pg,$line->[6]) if ($line->[6]); # 会員
+    #$st_dta = # 通販
 
-        #$prod_class->hash;
-    }
-
-    warn Dumper $prod_id;
-    warn Dumper $prod_class_id;
-
-    if ( $prod_id && $prod_class_id ){
+    # $prod_id, $prod_class_idがある。つまり完全に新規: create
+    if ( $prod_id && $prod_class_id){
         warn Dumper "create stock";
         my $res = createProductStock($pg, $line, $prod_id, $prod_class_id);
-    }else{
-        #my $res = updateProductStock($pg, $line, $stock_prod_class_id);
     }
+    #  $prod_id, $prod_class_idがない。対象stockは在る：update
+    elsif($st_dta){
+        warn Dumper "update stock";
+        my $res = &updateProductStock($pg, $line, $prod_id, $prod_class_id);
+    }
+    #  $prod_id, $prod_class_idがない。対象stockは無い：create
+
 }
 
 sub createProduct
