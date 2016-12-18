@@ -1,10 +1,9 @@
 package ImportCsv::CLI::Product;
 
-use strict;
-use warnings;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use ImportCsv::Commons::Utils;
+use ImportCsv::Data::DtbProduct;
 
 use constant DEBUG => 0;
 use Data::Dumper;
@@ -33,7 +32,8 @@ sub run {
     elsif($ARGV[2] ) { say 'Product'.$ARGV[2] }
     else { say 'Product' }
      my $utils = ImportCsv::Commons::Utils->new;
-    $utils->load_csv_from_file();
+    my $res = $utils->load_csv_from_file('Product.csv');
+    warn Dumper $res;
 #    &check_file(DEBUG);
 #    self->command->create_dir('/tmp/aa');
 };

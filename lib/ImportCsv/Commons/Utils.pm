@@ -1,7 +1,5 @@
 package ImportCsv::Commons::Utils;
 
-use strict;
-use warnings;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use constant DEBUG => 0;
@@ -25,13 +23,15 @@ sub load_csv_from_file
 {
     my ($self, $name) = @_;
     my %res = ();
-#    if ( -f DATA_DIR.'/'.name) return $res['message'] = 'file not found:'.$name;
-#    my @csv = &load_csv_from_file("./chk.csv");
+    my $fpath = DATA_DIR.'/'.$name;
+
+    if (! -f $fpath ){
+        return $res{'message'} = 'file not found:'.$name;
+    }
+    my @csv = &load_csv_from_file($fpath);
 #    foreach my $line (@csv){
 #    }
-    for( my $i=0; $i<10; ++$i){
-        warn Dumper $i;
-    }
 }
+
 1;
 
