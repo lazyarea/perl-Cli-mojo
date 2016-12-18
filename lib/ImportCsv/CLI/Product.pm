@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
+use ImportCsv::Commons::Utils;
+
 use constant DEBUG => 0;
 use Data::Dumper;
 
@@ -30,13 +32,11 @@ sub run {
     if ($ARGV[1])    { say 'Product'.$ARGV[1] }
     elsif($ARGV[2] ) { say 'Product'.$ARGV[2] }
     else { say 'Product' }
-    &check_file(DEBUG);
-
+     my $utils = ImportCsv::Commons::Utils->new;
+    $utils->load_csv_from_file();
+#    &check_file(DEBUG);
+#    self->command->create_dir('/tmp/aa');
 };
 
-sub check_file {
-    my ($self, $name) = @_;
-    warn Dumper $name;
-};
 1;
 

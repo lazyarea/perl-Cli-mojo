@@ -4,11 +4,7 @@ use strict;
 use warnings;
 
 use FindBin;
-BEGIN {
-    unshift @INC, "$FindBin::Bin/../lib";
-    $ENV{MOJO_HOME} = $FindBin::Bin
-      unless $ENV{MOJO_HOME};
-}
+BEGIN { unshift @INC, "$FindBin::Bin/../lib" }
 use Mojolicious::Commands;
 
 # Start command line interface for application
