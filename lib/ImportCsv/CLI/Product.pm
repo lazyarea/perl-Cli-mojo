@@ -3,7 +3,7 @@ package ImportCsv::CLI::Product;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use ImportCsv::Commons::Utils;
-use ImportCsv::Data::DtbProduct;
+use ImportCsv::Data::Dtb::Product;
 
 use constant DEBUG => 0;
 use Data::Dumper;

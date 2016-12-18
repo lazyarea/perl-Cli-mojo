@@ -12,16 +12,11 @@ use constant DBPASSWD => 'eccube';
 
 
 sub new {
-    my $class = shift;
-    my $self = {};
-    my $dbhost = DBHOST;
-    my $dbname = DBNAME;
-    my $dbuser = DBUSER;
-    my $dbpasswd = DBPASSWD;
-    my $dbh = DBI->connect("dbi:Pg:dbname=$dbname;host=$host;port=$port;options=$options",
-            $username,$password,
-            {AutoCommit => 0, RaiseError => 1, PrintError => 0});
-    return bless $self, $class, $dbh;
+    # SEE: http://mojolicious.org/perldoc/Mojo/Pg
+    my $self = shift;
+    my $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
+    $pg->password('Password1');
+    $pg->options({AutoCommit => 1, RaiseError => 1});
 }
 
 1;
