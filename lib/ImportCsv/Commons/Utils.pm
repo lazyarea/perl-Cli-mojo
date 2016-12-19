@@ -185,6 +185,9 @@ sub validateMemberKihon
     if ( &len($line->[13],30) ){
         $valid{$line->[13]} = 'is too long.';
     }
+    if ( !$line->[18] ){
+        $valid{$line->[18]} = 'craft_number is not exists.';
+    }
     return \%valid if (keys %valid);
 }
 
@@ -212,6 +215,9 @@ sub validateOnlineKihon
     }
     if ( &len($line->[13],30) ){
         $valid{$line->[13]} = 'is too long.';
+    }
+    if ( !$line->[17] ){
+        $valid{$line->[17]} = 'client_code is not exists.';
     }
     return \%valid if (keys %valid);
 }
