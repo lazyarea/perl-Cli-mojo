@@ -30,6 +30,22 @@ sub get_file_name
     }
 }
 
+#    my %valid = ();
+#    if ( my $res = &len('aaaaa', 3) ){
+#        $valid{'aaaaa'} = 'too long:'.$res;
+#    }
+#    if ( my $res = &len('bbbb', 3) ){
+#        $valid{'bbbb'} = 'too long:'.$res;
+#    }
+#    my $log = Mojo::Log->new;
+#    $log = Mojo::Log->new(path => '/tmp/mojo.log', level => 'info');
+#    $log->info(%valid);
+#    for(keys %valid){
+#        my $k=$_;
+#        my $v=$valid{$k};
+#        $log->info( "$k => $v");
+#    }
+#
 sub logger
 {
     my ($self,$data) = @_;
