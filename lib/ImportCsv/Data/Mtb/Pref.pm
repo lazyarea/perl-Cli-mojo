@@ -9,8 +9,8 @@ use Moment;
 use Data::Dumper;
 
 use constant DEBUG => 0; # 1:true
-use constant DATA_DIR => '/var/www/doc/data';
-use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
+#use constant DATA_DIR => '/var/www/doc/data';
+#use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
