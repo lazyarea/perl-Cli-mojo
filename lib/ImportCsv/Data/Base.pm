@@ -7,12 +7,14 @@ use Mojo::Pg;
 use CGI::Session;
 use Data::Dumper;
 use constant DEBUG => 0;
-use constant DBHOST   => 'localhost';
-use constant DBNAME   => 'eccube';
-use constant DBUSER   => 'eccube';
-use constant DBPASSWD => 'Password1';
-use constant AUTOCOMMIT => 0;
-use constant RAISEERROR => 1;
+#use constant AUTOCOMMIT => 0;
+#use constant RAISEERROR => 1;
+
+has config => sub {
+    my $config = ImportCsv::Commons::Config->new;
+    $config->load_config();
+};
+
 
 sub get_conenction
 {
@@ -24,20 +26,15 @@ sub get_conenction
 #        warn Dumper  $session->param('pg');
     my $pg = undef;
     eval{
-        $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
-        #$pg = Mojo::Pg->new('postgresql://eccube@153.149.156.108/eccube_dev_share');
-        $pg->password(DBPASSWD);
+        $pg = Mojo::Pg->new('postgresql://'.$self->config->{'database'}->{'user'}.'@'
+            .$self->config->{'database'}->{'host'}.'/'.$self->config->{'database'}->{'dbname'});
+        $pg->password($self->config->{'database'}->{'password'});
 #        $pg->options({AutoCommit => 1, RaiseError => 1});
     };
     if ($@){
         warn Dumper $@;
         exit 1;
     }
-#       $pg->options({AutoCommit => 0, RaiseError => 1});
-#        $session->param('pg',$pg);
-#    }
-#    return $session->param('pg');
-
     return $pg;
 }
 

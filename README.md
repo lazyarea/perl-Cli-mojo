@@ -1,17 +1,14 @@
-# perl-Cli-mojo
+# perl-Cli
 ## SETUP
-    yum install -y perl-local-lib
+    yum install -y perl-local-lib perl-version
     yum install -y postgresql-devel      # for PostgreSQL
     perl -Mlocal::lib >> ~/.bash_profile
     cpan -i DBD::Pg Mojolicious Mojo::Pg Digest::MD5 DBD::Pg \
-        Text::CSV Time::Moment CGI CGI::Session
+        Text::CSV Time::Moment CGI CGI::Session DBI version
 ## HOW 2 USE
 ### DB SETTING
-    vim lib/ImportCsv/Data/Base.pm
-#### local
-    $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
-#### 153
-    $pg = Mojo::Pg->new('postgresql://eccube@153.149.156.108/eccube_dev_share');
+    vim lib/ImportCsv/Commons/Config
+    #edit constants.
 ### SHOW OPTIONS
     ./bin/import.pl
     Commands:
