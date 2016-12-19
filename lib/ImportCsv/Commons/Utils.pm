@@ -28,7 +28,6 @@ sub get_file_name
     chdir($path);
     my @file = glob "*.csv *.DAT *.dat)";
     # warn Dumper join( "\t", @file ), "\n";
-    warn Dumper @file ;
     foreach my $file (@file){
         if ($file =~ /$fname/i){
             return $file;
