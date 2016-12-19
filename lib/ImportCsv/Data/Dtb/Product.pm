@@ -81,6 +81,7 @@ sub addProduct
         $res = $pg->db->query($sql);
     };
     if ($@) {
+#        $pg->db->rollback();
         say $@;
     }
 #    warn Dumper $res;
