@@ -37,5 +37,14 @@ sub logger
     $log->info($data);
 }
 
+sub len
+{
+    my ($str, $limit) = @_;
+    if ( length($str) > $limit){
+        return true;
+    }
+    return undef;
+}
+
 1;
 
