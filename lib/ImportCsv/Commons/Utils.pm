@@ -13,24 +13,20 @@ sub new {
     return bless $self, $class;
 }
 
-sub check_file
+sub get_file_name
 {
-    my ($self, $name) = @_;
-    warn Dumper DATA_DIR;
-};
-
-sub load_csv_from_file
-{
-    my ($self, $name) = @_;
-    my %res = ();
-    my $fpath = DATA_DIR.'/'.$name;
-
-    if (! -f $fpath ){
-        return $res{'message'} = 'file not found:'.$name;
+    my ($self, $path, $fname ) = @_;
+    warn Dumper $path;
+    warn Dumper $fname;
+    chdir($path);
+    my @file = glob "*.csv";
+    # warn Dumper join( "\t", @file ), "\n";
+#    warn Dumper @file ;
+    foreach my $file (@file){
+        if ($file =~ /$fname/i){
+            return $file;
+        }
     }
-    my @csv = &load_csv_from_file($fpath);
-#    foreach my $line (@csv){
-#    }
 }
 
 1;

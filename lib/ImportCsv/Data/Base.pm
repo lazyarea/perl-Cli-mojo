@@ -9,17 +9,24 @@ use constant DEBUG => 0;
 use constant DBHOST   => 'localhost';
 use constant DBNAME   => 'eccube';
 use constant DBUSER   => 'eccube';
-use constant DBPASSWD => 'eccube';
+use constant DBPASSWD => 'Password1';
+use constant AUTOCOMMIT => 0;
+use constant RAISEERROR => 1;
 
 sub get_conenction
 {
     my ($self, @args) = @_;
 #    my $session = CGI::Session->new(undef,undef,{Directory => '/tmp'});
-#    $session->expire('+30m');
-#    $session->param('pg',1);
-#    warn Dumper  $session->param('pg');
-    my $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
-    $pg->password('Password1');
+#    if ( !$session->param('pg') ){
+#        warn Dumper " not found Session: pg";
+#        $session->expire('+30m');
+#        warn Dumper  $session->param('pg');
+        my $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
+        $pg->password(DBPASSWD);
+#       $pg->options({AutoCommit => 0, RaiseError => 1});
+#        $session->param('pg',$pg);
+#    }
+#    return $session->param('pg');
     return $pg;
 }
 
