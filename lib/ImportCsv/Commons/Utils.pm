@@ -9,6 +9,12 @@ use constant LOG_DIR  => '/tmp';
 use constant LOG_FILE  => '/mojo.log';
 use Text::CSV;
 use Data::Dumper;
+use ImportCsv::Commons::Config;
+
+has commons_config => sub {
+    my $config = ImportCsv::Commons::Config->new;
+    $config->load_config();
+};
 
 sub new {
     my $class = shift;
@@ -20,9 +26,9 @@ sub get_file_name
 {
     my ($self, $path, $fname ) = @_;
     chdir($path);
-    my @file = glob "*.csv";
+    my @file = glob "*.csv *.DAT *.dat)";
     # warn Dumper join( "\t", @file ), "\n";
-#    warn Dumper @file ;
+    warn Dumper @file ;
     foreach my $file (@file){
         if ($file =~ /$fname/i){
             return $file;
