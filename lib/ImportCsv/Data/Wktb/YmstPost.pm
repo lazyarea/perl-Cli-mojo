@@ -1,4 +1,4 @@
-package ImportCsv::Data::Mtb::Pref;
+package ImportCsv::Data::Wktb::YmstPost;
 
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
@@ -20,21 +20,5 @@ has utils => sub{
      return ImportCsv::Commons::Utils->new;
 };
 
-sub get_pref_id
-{
-    my ($self, $pg, $val) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
-    my $sql = "SELECT id from mtb_pref WHERE name = '$val'";
-    my $ret = undef;
-    eval{
-        $ret = $pg->db->query($sql);
-    };
-    if ($@) {
-        $utils->logger($sql);
-        $utils->logger($@);
-    }
-    my $hash = $ret->hash;
-    return $hash;
-}
 
 1;
