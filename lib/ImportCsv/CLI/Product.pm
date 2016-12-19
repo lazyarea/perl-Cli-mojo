@@ -31,11 +31,14 @@ sub run {
     if ($ARGV[1])    { say 'Product'.$ARGV[1] }
     elsif($ARGV[2] ) { say 'Product'.$ARGV[2] }
     else { say 'Product' }
-     my $utils = ImportCsv::Commons::Utils->new;
-    my $res = $utils->load_csv_from_file('Product.csv');
-    warn Dumper $res;
+#--------- use Data::DTB::Product
+    my $p = new ImportCsv::Data::Dtb::Product();
+    my $res = $p->find();
+#--------- use Utils
+#    my $utils = ImportCsv::Commons::Utils->new;
+#    my $res = $utils->load_csv_from_file('Product.csv');
+#    warn Dumper $res;
 #    &check_file(DEBUG);
-#    self->command->create_dir('/tmp/aa');
 };
 
 1;
