@@ -28,7 +28,6 @@ sub new {
 sub load_config
 {
     my $self = shift;
-    warn Dumper $self->app->home;
     my %config;
     $config{'data'}{'data_dir'} = DATA_DIR;
     $config{'data'}{'data_meved_dir'} = DATA_MOVED_DIR;
