@@ -10,11 +10,13 @@ use constant DEBUG => 0;
 #use constant AUTOCOMMIT => 0;
 #use constant RAISEERROR => 1;
 
-has config => sub {
+has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-
+has utils => sub{
+     return ImportCsv::Commons::Utils->new;
+};
 
 sub get_conenction
 {
@@ -26,13 +28,13 @@ sub get_conenction
 #        warn Dumper  $session->param('pg');
     my $pg = undef;
     eval{
-        $pg = Mojo::Pg->new('postgresql://'.$self->config->{'database'}->{'user'}.'@'
-            .$self->config->{'database'}->{'host'}.'/'.$self->config->{'database'}->{'dbname'});
-        $pg->password($self->config->{'database'}->{'password'});
+        $pg = Mojo::Pg->new('postgresql://'.$self->commons_config->{'database'}->{'user'}.'@'
+            .$self->commons_config->{'database'}->{'host'}.'/'.$self->commons_config->{'database'}->{'dbname'});
+        $pg->password($self->commons_config->{'database'}->{'password'});
 #        $pg->options({AutoCommit => 1, RaiseError => 1});
     };
     if ($@){
-        warn Dumper $@;
+        $self->utils->logger($@);
         exit 1;
     }
     return $pg;

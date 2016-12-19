@@ -49,7 +49,8 @@ sub get_file_name
 sub logger
 {
     my ($self,$data) = @_;
-    my $log = Mojo::Log->new(path => LOG_DIR.LOG_FILE, level => 'info');
+    my $log = Mojo::Log->new(path => $self->commons_config->{'log'}->{'log_dir'}
+	.$self->commons_config->{'log'}->{'log_file'}, level => 'info');
     $log->info($data);
 }
 

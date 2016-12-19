@@ -12,6 +12,13 @@ use Data::Dumper;
 
 use constant DEBUG => 0; # 1:true
 
+has commons_config => sub {
+    my $config = ImportCsv::Commons::Config->new;
+    $config->load_config();
+};
+has utils => sub{
+     return ImportCsv::Commons::Utils->new;
+};
 
 sub findByProductCode
 {

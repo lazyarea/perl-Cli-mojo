@@ -15,18 +15,26 @@ use constant DEBUG => 0; # 1:true
 use constant DATA_DIR => '/var/www/doc/data';
 use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
 
+has commons_config => sub {
+    my $config = ImportCsv::Commons::Config->new;
+    $config->load_config();
+};
+has utils => sub{
+     return ImportCsv::Commons::Utils->new;
+};
+
 sub load_csv_from_file
 {
     my $self = shift;
     my %res = ();
     my $utils = ImportCsv::Commons::Utils->new;
-    my $file = $utils->get_file_name(DATA_DIR, 'shohin');
+    my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'shohin');
     if ( !$file ) {
         $utils->logger("target not found.");
         exit 1;
     }
     $utils->logger($file.": found.");
-    my $fpath = DATA_DIR.'/'.$file;
+    my $fpath = $self->commons_config->{'data'}->{'data_dir'}.'/'.$file;
     if ( ! -f $fpath){
         $res{'message'} = "file not found: ".$fpath;
         $utils->logger(\%res);
@@ -83,7 +91,7 @@ sub load_csv_from_file
     }
     $csv->eof or $csv->error_diag();
     close $fh;
-    if ( DEBUG == 0){ move $fpath, DATA_MOVED_DIR.'/'.$file or die $!; }
+    if ( DEBUG == 0){ move $fpath, $self->commons_config->{'data'}->{'data_moved_dir'}.'/'.$file or die $!; }
     $utils->logger($file.': done');
 }
 
