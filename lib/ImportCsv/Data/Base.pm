@@ -21,12 +21,20 @@ sub get_conenction
 #        warn Dumper " not found Session: pg";
 #        $session->expire('+30m');
 #        warn Dumper  $session->param('pg');
-        my $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
+    my $pg = undef;
+    eval{
+        $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
         $pg->password(DBPASSWD);
+    };
+    if ($@){
+        warn Dumper $@;
+        exit 1;
+    }
 #       $pg->options({AutoCommit => 0, RaiseError => 1});
 #        $session->param('pg',$pg);
 #    }
 #    return $session->param('pg');
+
     return $pg;
 }
 
