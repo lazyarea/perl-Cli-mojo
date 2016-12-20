@@ -3,6 +3,7 @@ package ImportCsv::Data::Base;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use Mojo::Pg;
+#use Mojo::Pg::Transaction;
 use CGI::Session;
 use Data::Dumper;
 use constant DEBUG => 0;
@@ -23,8 +24,10 @@ sub get_conenction
 #        warn Dumper  $session->param('pg');
     my $pg = undef;
     eval{
+        #$pg = Mojo::Pg->new('postgresql://eccube@/eccube');
         $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
         $pg->password(DBPASSWD);
+#        $pg->options({AutoCommit => 1, RaiseError => 1});
     };
     if ($@){
         warn Dumper $@;

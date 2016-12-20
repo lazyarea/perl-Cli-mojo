@@ -19,8 +19,6 @@ sub new {
 sub get_file_name
 {
     my ($self, $path, $fname ) = @_;
-    warn Dumper $path;
-    warn Dumper $fname;
     chdir($path);
     my @file = glob "*.csv";
     # warn Dumper join( "\t", @file ), "\n";
