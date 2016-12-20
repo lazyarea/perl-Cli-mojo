@@ -32,7 +32,7 @@ sub get_file_name
     }
 }
 
-sub addLog
+sub logger
 {
     my ($self,$data) = @_;
     my $log = Mojo::Log->new(path => LOG_DIR.LOG_FILE, level => 'info');
