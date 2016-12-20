@@ -74,9 +74,25 @@ sub load_csv_from_file
         # validate end
         #----------------------------
             #my $prod_last_insert_id = &createProduct( $pg, $row );
+            #my $prod_class_last_value = &createProductClass($pg,$row, $prod_last_value);
             my $prod_last_value = &create_or_updateProduct( $pg, $row );
-            my $prod_class_last_value = &createProductClass($pg,$row, $prod_last_value->{'last_value'});
-            &createProductStock($pg, $row, $prod_last_value->{'last_value'}, $prod_class_last_value->{'last_value'});
+            my $prod_class_last_value = &create_or_updateProductClass($pg,$row, $prod_last_value->{'last_value'});
+warn Dumper "===================";
+warn Dumper $prod_last_value->{'last_value'};
+warn Dumper $prod_class_last_value->{'last_value'};
+            &create_or_updateProductStock($pg, $row, $prod_last_value->{'last_value'}, $prod_class_last_value->{'last_value'});
+
+
+exit 1;
+
+
+
+            #my $prod_class_last_value = &createProductClass($pg,$row, $prod_last_value->{'last_value'});
+#            my $prod_class_last_value = &createProductClass($pg,$row, $prod_last_value);
+            #warn Dumper "---------------";
+            #warn Dumper $prod_last_value;
+            #warn Dumper "---------------";
+            #&createProductStock($pg, $row, $prod_last_value->{'last_value'}, $prod_class_last_value->{'last_value'});
             $c++;
         }
         # END TRANSACTION
@@ -101,7 +117,8 @@ sub create_or_updateProduct
 #    warn Dumper keys &findProduct($pg,$line);
 
     if ( !$data ){
-        &createProduct( $pg, $line );
+        my $last =  &createProduct( $pg, $line );
+        return $last;
     }else{
         warn Dumper "exists:". $line->[6];
         &updateProduct($pg, $line);
@@ -112,9 +129,58 @@ sub create_or_updateProduct
 sub create_or_updateProductClass
 {
     my($pg,$line,$prod_id) = @_;
-    return undef if (!$prod_id);
-    my $utils = ImportCsv::Commons::Utils->new;
+    if ($prod_id){
+        my $res = &createProductClass($pg,$line,$prod_id);
+        return $res;
+    }else{
+        &updateProductClass($pg,$line,$prod_id);
+        return undef;
+    }
+}
 
+sub create_or_updateProductStock
+{
+    my ($pg, $line, $prod_id, $prod_class_id) = @_;
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $data_sql = "select s.product_class_id from dtb_product_class AS c";
+    $data_sql .= " LEFT JOIN dtb_product_stock AS s ON c.product_class_id = s.product_class_id";
+    $data_sql .= " WHERE 1=1";
+    $data_sql .= " AND product_code='$line->[6]'";
+    my $data = $pg->db->query($data_sql);
+    # Stock not found, then find prod_class_id
+    if (!$data->hash->{'product_class_id'}){
+        my $cls_sql = 'SELECT product_id, product_class_id  from dtb_product_class';
+        $cls_sql .= ' WHERE 1=1';
+        $cls_sql .= " AND product_code='$line->[6]'";
+        my $prod_class = undef;
+        eval{
+            $prod_class = $pg->db->query($cls_sql);
+            # ここで詰まってる.
+            # stockだけレコードがない場合作りに行く
+            #$prod_id =  $prod_class->hash->{'product_id'};
+            #$prod_class_id = $prod_class->hash->{'product_class_id'};
+        };
+        if ($@){
+            $utils->logger($@);
+            $utils->logger($cls_sql);
+            return undef;
+        }
+        #warn Dumper  $prod_class->hash;
+        #warn Dumper  $prod_class->hash->{'product_id'};
+        #warn Dumper  $prod_class->hash->{'product_class_id'};
+
+        #$prod_class->hash;
+    }
+
+    warn Dumper $prod_id;
+    warn Dumper $prod_class_id;
+
+    if ( $prod_id && $prod_class_id ){
+        warn Dumper "create stock";
+        my $res = createProductStock($pg, $line, $prod_id, $prod_class_id);
+    }else{
+        #my $res = updateProductStock($pg, $line, $stock_prod_class_id);
+    }
 }
 
 sub createProduct
@@ -148,8 +214,6 @@ sub updateProduct
     my $dt = Moment->now->get_dt();
     my $prod = &findProduct($pg,$line);
     my $sql = 'UPDATE dtb_product';
-#    $sql .= " SET stock=$line->[7], price02=$line->[9], update_date='$dt',";
-#    $sql .= " stock_scheduled_sell=$line->[8]";
     $sql .= " SET name='$line->[0]', product_master_name='$line->[0]',set_product_flg=$line->[1], product_division_id=$line->[2], product_handling_division_id=$line->[3],flight_not_flg=$line->[4], product_markup_rate_id=$line->[5],soldout_notices='$line->[10]'";
     $sql .= " WHERE product_id=".$prod->{'product_id'};
     #$utils->logger($sql) if DEBUG==1;
@@ -159,7 +223,6 @@ sub updateProduct
         $res = $pg->db->query($sql);
     };
     if ($@) {
-#        $pg->db->rollback();
         $utils->logger($sql);
         $utils->logger($@);
         exit 1;
@@ -183,7 +246,6 @@ sub createProductClass
         $res = $pg->db->query($sql);
     };
     if ($@) {
-#        $pg->db->rollback();
         $utils->logger($sql);
         $utils->logger($@);
         exit 1;
@@ -192,6 +254,35 @@ sub createProductClass
     return $ret->hash;
 }
 
+
+sub updateProductClass
+{
+    my($pg,$line,$prod_id) = @_;
+#    return undef if (!$prod_id);
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $dt = Moment->now->get_dt();
+    my $sql = undef;
+    if ($line->[6]){
+        $sql = "select * from dtb_product_class where product_code='$line->[6]'";
+    }
+    my $data = $pg->db->query($sql);
+    if (!$data->hash){
+        $utils->logger('updateProductClass:'.$line->[6].': product_code not found.');
+        return undef;
+    }
+    my $update_sql =  'UPDATE dtb_product_class SET ';
+    $update_sql .= "  stock=$line->[7],price02=$line->[9],update_date='$dt', stock_scheduled_sell='$line->[8]'";
+    $update_sql .= " WHERE product_code='$line->[6]'";
+    #$utils->logger($update_sql) if DEBUG == 1;
+    my $res = undef;
+    eval{
+        $res = $pg->db->query($update_sql);
+    };
+    if ($@) {
+        $utils->logger($sql);
+        $utils->logger($@);
+    }
+}
 
 sub createProductStock
 {
@@ -207,7 +298,26 @@ sub createProductStock
         $res = $pg->db->query($sql);
     };
     if ($@) {
-#        $pg->db->rollback();
+        $utils->logger($sql);
+        $utils->logger($@);
+        exit 1;
+    }
+}
+
+sub updateProductStock
+{
+    my($pg,$line,$prod_id,$prod_class_id) = @_;
+    return undef if (!$prod_id || !$prod_class_id);
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $dt = Moment->now->get_dt();
+    my $sql = 'UPDATE dtb_product_stock';
+    $sql .= " SET stock=$line->[7],update_date='$dt'";
+    $sql .= " WHERE product_class_id=$prod_id";
+    my $res = undef;
+    eval{
+        $res = $pg->db->query($sql);
+    };
+    if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
         exit 1;
