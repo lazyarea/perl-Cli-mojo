@@ -21,13 +21,11 @@ sub load_csv_from_file
     my %res = ();
     my $utils = ImportCsv::Commons::Utils->new;
     my $file = $utils->get_file_name(DATA_DIR, 'shohin');
-    $utils->logger($file.": found.");
-
     if ( !$file ) {
-        $res{'message'} = "file not found: shohin";
-        $utils->logger(\%res);
+        $utils->logger("target not found.");
         exit 1;
     }
+    $utils->logger($file.": found.");
     my $fpath = DATA_DIR.'/'.$file;
     if ( ! -f $fpath){
         $res{'message'} = "file not found: ".$fpath;
@@ -127,7 +125,6 @@ sub create_or_updateProductStock
 
     # $prod_id, $prod_class_idがある。つまり完全に新規: create
     if ( $prod_id && $prod_class_id){
-warn Dumper "create";
         my $res = createProductStock($pg, $line, $prod_id, $prod_class_id);
     }
     #  $prod_id, $prod_class_idがない。対象stockは無い：create
@@ -136,7 +133,6 @@ warn Dumper "create";
     }
     #  $prod_id, $prod_class_idがない。対象stockは在る：update
     elsif($st_dta){
-warn Dumper "update";
         my $res = &updateProductStock($pg, $line, $prod_id, $prod_class_id);
     }
 }
@@ -274,7 +270,8 @@ sub updateProductStock
     my $hash  = $query->hash;
     #----------------
     my $dt = Moment->now->get_dt();
-    my $sql = 'UPDATE dtb_product_stock';
+    $sql=undef;
+    $sql = 'UPDATE dtb_product_stock';
     $sql .= " SET stock=$line->[7],update_date='$dt'";
     $sql .= " WHERE product_class_id=$hash->{'product_stock_id'}";
     my $res = undef;
