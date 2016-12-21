@@ -93,7 +93,8 @@ sub validateOnlineShohin
     if ( &len($line->[6],11) ){
         $valid{$line->[6]} = 'is too long.';
     }
-    if ( &len($line->[7],9) ){
+    if ( $line->[7] =~ /^-[0-9]+$/ ){
+    }elsif ( &is_numeric($line->[7]) ){
         $valid{$line->[7]."_length"} = 'is too long.';
     }
     if ( &is_numeric($line->[7]) ){
@@ -130,7 +131,8 @@ sub validateMemberShohin
     if ( &len($line->[7],9) ){
         $valid{$line->[7]."_length"} = 'is too long.';
     }
-    if ( &is_numeric($line->[7]) ){
+    if ( $line->[7] =~ /^-[0-9]+$/ ){
+    }elsif ( &is_numeric($line->[7]) ){
         $valid{$line->[7]."_numeric"} = 'is not numeric.';
     }
     if ( &is_numeric($line->[8]) ){
