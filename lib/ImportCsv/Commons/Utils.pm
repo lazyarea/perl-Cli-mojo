@@ -78,6 +78,14 @@ sub generate_str
     return join '', map $alphanumeric[rand @alphanumeric], 0..8;
 
 }
+
+sub escape_quote
+{
+    my $str = shift;
+    return $str =~ s/'/''/g;
+}
+
+
 sub validateOnlineShohin
 {
     my ($self,$line) = @_;
@@ -165,6 +173,9 @@ sub validateMemberKihon
     if ( &len($line->[6],20) ){
         $valid{$line->[6]} = 'is too long.';
     }
+#    $line->[8] = &escape_quote($line->[8]);
+#    $line->[9] = &escape_quote($line->[9]);
+#    warn Dumper $line;
     if ( &len($line->[11],40) ){
         $valid{$line->[11]} = 'is too long.';
     }

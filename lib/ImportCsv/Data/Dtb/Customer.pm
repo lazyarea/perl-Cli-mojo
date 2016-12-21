@@ -90,8 +90,8 @@ sub create_or_updateCustomer
     my($pg, $line, $file) = @_;
     my $data = &findCustomer($pg,$line);
 
+    my $last = undef;
     if ( !$data ){
-        my $last = undef;
         if ($file =~ /^NVH_KIHON/i) {
             $last = &createMember($pg,$line);
 #        }elsif($file =~ /^FCH_KIHON/i){
@@ -99,7 +99,11 @@ sub create_or_updateCustomer
 
 #        return $last;
     }else{
-        &updateCustomer($pg, $line);
+        if ($file =~ /^NVH_KIHON/i) {
+            $last = &updateMember($pg,$line);
+#        }elsif($file =~ /^FCH_KIHON/i){
+        }
+        #&updateCustomer($pg, $line);
         return undef;
     }
 }
@@ -136,6 +140,8 @@ sub createMember
         $sex = 1 if $line->[1] == 2;
         $sex = 2 if $line->[1] == 1;
     }
+    for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
+
     # $line->[19]保有ポイントTBD
     $line->[19] = 0 if ( !$line->[19]);
     # $line->[20]ポイント有効期限
@@ -147,7 +153,8 @@ sub createMember
         $pexpired = sprintf("%4s-%2s-%2s 00:00:00", $y,$m,$d);
     }else{$pexpired = '1970-01-01 00:00:00';}
     # $line->[21]支払い状況は会員の場合NULL
-    # $line->[23]会員状況(2)
+    # $line->[22]会員状況(2)
+    $line->[22] = ($line->[22] =~ s/^0+//);
     # secret_key
     my $ramdom = $utils->generate_str();
     my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,craft_number,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,black_rank,markup_rate,realize_point,point_expiration_date,secret_key) VALUES(';
@@ -164,23 +171,10 @@ sub createMember
     #$utils->logger($sql) if DEBUG==1;
 }
 
-sub updateCustomer
+sub updateMember
 {
     my ($pg,$line) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
-    my $sql = 'SELECT * FROM dtb_customer';
-
-    $sql .= " WHERE client_code='$line->[17]'" if $line->[17];
-    $sql .= " WHERE craft_number='$line->[18]'" if $line->[18];
-    my $ret = undef;
-    eval{
-        $ret = $pg->db->query($sql);
-    };
-    if ($@) {
-        $utils->logger($sql);
-        $utils->logger($@);
-        exit 1;
-    }
 }
 1;
 
