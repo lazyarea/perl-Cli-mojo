@@ -153,6 +153,18 @@ sub validateMemberKihon
 {
     my ($self,$line) = @_;
     my %valid = ();
+    if ( &len($line->[3],20) ){
+        $valid{$line->[3]} = 'is too long.';
+    }
+    if ( &len($line->[4],20) ){
+        $valid{$line->[4]} = 'is too long.';
+    }
+    if ( &len($line->[5],20) ){
+        $valid{$line->[5]} = 'is too long.';
+    }
+    if ( &len($line->[6],20) ){
+        $valid{$line->[6]} = 'is too long.';
+    }
     if ( &len($line->[11],40) ){
         $valid{$line->[11]} = 'is too long.';
     }
@@ -169,6 +181,18 @@ sub validateOnlineKihon
 {
     my ($self,$line) = @_;
     my %valid = ();
+    if ( &len($line->[3],20) ){
+        $valid{$line->[3]} = 'is too long.';
+    }
+    if ( &len($line->[4],20) ){
+        $valid{$line->[4]} = 'is too long.';
+    }
+    if ( &len($line->[5],20) ){
+        $valid{$line->[5]} = 'is too long.';
+    }
+    if ( &len($line->[6],20) ){
+        $valid{$line->[6]} = 'is too long.';
+    }
     if ( &len($line->[11],40) ){
         $valid{$line->[11]} = 'is too long.';
     }

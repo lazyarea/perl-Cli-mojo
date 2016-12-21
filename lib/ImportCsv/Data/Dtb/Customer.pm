@@ -43,7 +43,12 @@ sub load_csv_from_file
     eval{
         while ( my $row = $csv->getline( $fh ) ) {
             if ($c==0){ $c++; next}
-            #----------------------------validate start
+            #-----------------------------skip
+            if ($row->[0] =~ /(3|4)/ ){
+                $utils->logger($c.'行目：会員種別'.$row->[0]);
+                next;
+            }
+            ##----------------------------validate start
             my $valid = undef;
             if ($file =~ /^NVH_KIHON/i) {
                 $valid = $utils->validateMemberKihon($row);
