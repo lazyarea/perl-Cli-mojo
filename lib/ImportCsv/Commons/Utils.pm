@@ -71,6 +71,13 @@ sub is_numeric
     return 1;
 }
 
+sub generate_str
+{
+    my $self = shift;
+    my @alphanumeric = ('a'..'z', 'A'..'Z', 0..9);
+    return join '', map $alphanumeric[rand @alphanumeric], 0..8;
+
+}
 sub validateOnlineShohin
 {
     my ($self,$line) = @_;
@@ -137,6 +144,39 @@ sub validateMemberShohin
     }
     if ( &is_numeric($line->[8]) ){
         $valid{$line->[8]} = 'is not numeric.';
+    }
+    return \%valid if (keys %valid);
+}
+
+
+sub validateMemberKihon
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+    if ( &len($line->[11],40) ){
+        $valid{$line->[11]} = 'is too long.';
+    }
+    if ( &len($line->[12],30) ){
+        $valid{$line->[12]} = 'is too long.';
+    }
+    if ( &len($line->[13],30) ){
+        $valid{$line->[13]} = 'is too long.';
+    }
+    return \%valid if (keys %valid);
+}
+
+sub validateOnlineKihon
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+    if ( &len($line->[11],40) ){
+        $valid{$line->[11]} = 'is too long.';
+    }
+    if ( &len($line->[12],30) ){
+        $valid{$line->[12]} = 'is too long.';
+    }
+    if ( &len($line->[13],30) ){
+        $valid{$line->[13]} = 'is too long.';
     }
     return \%valid if (keys %valid);
 }

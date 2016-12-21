@@ -1,14 +1,14 @@
-package ImportCsv::CLI::Product;
+package ImportCsv::CLI::Customer;
 
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use ImportCsv::Commons::Utils;
-use ImportCsv::Data::Dtb::Product;
+use ImportCsv::Data::Dtb::Customer;
 
 use constant DEBUG => 0;
 use Data::Dumper;
 
-has description => "import shohin.\n";
+has description => "import kihon.\n";
 has usage => <<EOF;
 usage: $0 hoge
 These options are available:
@@ -29,7 +29,7 @@ sub run {
     }
 
 #--------- use Data::DTB::Product
-    my $p = new ImportCsv::Data::Dtb::Product();
+    my $p = new ImportCsv::Data::Dtb::Customer();
     my $res = $p->load_csv_from_file();
 };
 
