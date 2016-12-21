@@ -34,12 +34,6 @@ sub run {
 #--------- use Data::DTB::Product
     my $p = new ImportCsv::Data::Dtb::Product();
     my $res = $p->load_csv_from_file();
-    #warn Dumper $res;
-#--------- use Utils
-#    my $utils = ImportCsv::Commons::Utils->new;
-#    my $res = $utils->load_csv_from_file('Product.csv');
-#    warn Dumper $res;
-#    &check_file(DEBUG);
 };
 
 

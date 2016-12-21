@@ -57,9 +57,86 @@ sub len
 {
     my ($str, $limit) = @_;
     if ( length($str) > $limit){
-        return true;
+        return length($str);
     }
     return undef;
+}
+
+sub is_numeric
+{
+    my $str = shift;
+    if ( $str =~ /^\d+$/ ){
+        return undef;
+    }
+    return 1;
+}
+
+sub validateOnlineShohin
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+    if ( &len($line->[0], 40) ){
+        $valid{$line->[0]} = 'too long';
+    }
+    if ( &is_numeric($line->[1]) ){
+        $valid{$line->[1]} = 'is not numeric.';
+    }
+    if ( &is_numeric($line->[2]) ){
+        $valid{$line->[2]} = 'is not numeric.';
+    }
+    if ( &is_numeric($line->[3]) ){
+        $valid{$line->[3]} = 'is not numeric.';
+    }
+    if ( 0 != $line->[4] ){
+        $valid{$line->[4]} = 'is not 0.';
+    }
+    if ( &len($line->[6],11) ){
+        $valid{$line->[6]} = 'is too long.';
+    }
+    if ( &len($line->[7],9) ){
+        $valid{$line->[7]."_length"} = 'is too long.';
+    }
+    if ( &is_numeric($line->[7]) ){
+        $valid{$line->[7]."_numeric"} = 'is not numeric.';
+    }
+    if ( &is_numeric($line->[8]) ){
+        $valid{$line->[8]} = 'is not numeric.';
+    }
+    return \%valid if (keys %valid);
+}
+
+sub validateMemberShohin
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+    if ( &len($line->[0], 40) ){
+        $valid{$line->[0]} = 'too long';
+    }
+    if ( &is_numeric($line->[1]) ){
+        $valid{$line->[1]} = 'is not numeric.';
+    }
+    if ( &is_numeric($line->[2]) ){
+        $valid{$line->[2]} = 'is not numeric.';
+    }
+    if ( $line->[3] != 1 ){
+        $valid{$line->[3]} = 'is not 1.';
+    }
+#    if ( 1 === $line->[4] ){
+#        $valid{$line->[4]} = 'is not 0.';
+#    }
+    if ( &len($line->[6],11) ){
+        $valid{$line->[6]} = 'is too long.';
+    }
+    if ( &len($line->[7],9) ){
+        $valid{$line->[7]."_length"} = 'is too long.';
+    }
+    if ( &is_numeric($line->[7]) ){
+        $valid{$line->[7]."_numeric"} = 'is not numeric.';
+    }
+    if ( &is_numeric($line->[8]) ){
+        $valid{$line->[8]} = 'is not numeric.';
+    }
+    return \%valid if (keys %valid);
 }
 
 1;

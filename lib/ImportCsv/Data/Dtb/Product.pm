@@ -7,35 +7,13 @@ use CGI::Session;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
+use ImportCsv::Data::Dtb::ProductStock;
 use Moment;
 use Data::Dumper;
 
-use constant DEBUG => 1; # 1:true
+use constant DEBUG => 0; # 1:true
 use constant DATA_DIR => '/var/www/doc/data';
 use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
-
-#has 'pg' => sub {
-#    my $conn = ImportCsv::Data::Base->new;
-#    my $pg   = $conn->get_conenction(); # connection error を書く必要がある
-#};
-
-#sub new
-#{
-#    my $class = shift;
-#    my $self = {};
-#    warn Dumper DBHOST;
-#    my $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
-#    $pg->password('Password1');
-#    $self->session('name',1);
-#    say $pg->db->query('select version() as version')->hash->{version};
-#    my $res =  $pg->db->query('select count(*) from dtb_product limit 1');
-#    warn Dumper $res->hash;
-#    my $dbh = DBI->connect("dbi:Pg:dbname=$dbname;host=$host;port=$port;options=$options",
-#            $username,$password,
-#            {AutoCommit => 0, RaiseError => 1, PrintError => 0});
-#    return bless $self, $class, $dbh;
-#    return bless $self, $class;
-#}
 
 sub load_csv_from_file
 {
@@ -44,7 +22,7 @@ sub load_csv_from_file
     my $utils = ImportCsv::Commons::Utils->new;
     my $file = $utils->get_file_name(DATA_DIR, 'shohin');
     $utils->logger($file.": found.");
-    my $flag = ($file =~ /^NVH_SHOHIN/i) ? 'member' : 'online';
+
     if ( !$file ) {
         $res{'message'} = "file not found: shohin";
         $utils->logger(\%res);
@@ -70,29 +48,30 @@ sub load_csv_from_file
         #----------------------------
         # validate start
         #----------------------------
+            my $valid = undef;
+            if ($file =~ /^NVH_SHOHIN/i) {
+                $valid = $utils->validateMemberShohin($row);
+            }elsif($file =~ /^FCH_SHOHIN/i) {
+                $valid = $utils->validateOnlineShohin($row);
+            }
+            if ($valid){
+                $valid->{'line_no'} = $c;
+                for(keys $valid){
+                    my $k=$_;
+                    my $v=$valid->{$k};
+                    $utils->logger( "$k => $v");
+                }
+
+#                $utils->logger($valid);
+                next;
+            }
         #----------------------------
         # validate end
         #----------------------------
-            #my $prod_last_insert_id = &createProduct( $pg, $row );
-            #my $prod_class_last_value = &createProductClass($pg,$row, $prod_last_value);
+
             my $prod_last_value = &create_or_updateProduct( $pg, $row );
             my $prod_class_last_value = &create_or_updateProductClass($pg,$row, $prod_last_value->{'last_value'});
-warn Dumper "===================";
-warn Dumper $prod_last_value->{'last_value'};
-warn Dumper $prod_class_last_value->{'last_value'};
             &create_or_updateProductStock($pg, $row, $prod_last_value->{'last_value'}, $prod_class_last_value->{'last_value'});
-
-
-exit 1;
-
-
-
-            #my $prod_class_last_value = &createProductClass($pg,$row, $prod_last_value->{'last_value'});
-#            my $prod_class_last_value = &createProductClass($pg,$row, $prod_last_value);
-            #warn Dumper "---------------";
-            #warn Dumper $prod_last_value;
-            #warn Dumper "---------------";
-            #&createProductStock($pg, $row, $prod_last_value->{'last_value'}, $prod_class_last_value->{'last_value'});
             $c++;
         }
         # END TRANSACTION
@@ -114,13 +93,11 @@ sub create_or_updateProduct
 {
     my($pg, $line) = @_;
     my $data = &findProduct($pg,$line);
-#    warn Dumper keys &findProduct($pg,$line);
 
     if ( !$data ){
         my $last =  &createProduct( $pg, $line );
         return $last;
     }else{
-        warn Dumper "exists:". $line->[6];
         &updateProduct($pg, $line);
         return undef;
     }
@@ -150,16 +127,18 @@ sub create_or_updateProductStock
 
     # $prod_id, $prod_class_idがある。つまり完全に新規: create
     if ( $prod_id && $prod_class_id){
-        warn Dumper "create stock";
+warn Dumper "create";
         my $res = createProductStock($pg, $line, $prod_id, $prod_class_id);
+    }
+    #  $prod_id, $prod_class_idがない。対象stockは無い：create
+    elsif(!$st_dta->{'product_class_id'} && $line->[10]){
+        warn Dumper "更新対象であるが対象レコードが存在しない";
     }
     #  $prod_id, $prod_class_idがない。対象stockは在る：update
     elsif($st_dta){
-        warn Dumper "update stock";
+warn Dumper "update";
         my $res = &updateProductStock($pg, $line, $prod_id, $prod_class_id);
     }
-    #  $prod_id, $prod_class_idがない。対象stockは無い：create
-
 }
 
 sub createProduct
@@ -169,8 +148,7 @@ sub createProduct
     my $dt = Moment->now->get_dt();
     my $sql = 'INSERT INTO dtb_product';
     $sql   .= " (creator_id, status, name, note, description_list, description_detail, search_word, free_area, del_flg, create_date, update_date, catalog_product_code, start_datetime, end_datetime, point_flg, point_rate, title1, title2, title3, title4, title5, title6, detail1, detail2, detail3, detail4, detail5, detail6, product_master_name, product_genre_id, set_product_flg, product_division_id, product_handling_division_id, soldout_notices, flight_not_flg, product_markup_rate_id, shipping_fee_type_id) VALUES (";
-    $sql .= "2, 1, '$line->[0]', null, null, null, null, null, 0, '$dt', '$dt', '$line->[6]', '1970-01-01 00:00:00.000000', '2099-01-01 00:00:00.000000', null, null, null, null, null, null, null, null, null, null, null, null, null, null, '$line->[0]', 0, $line->[1], $line->[2], $line->[3], '$line->[10]', $line->[4], $line->[5], 1)";
-
+    $sql .= "2, 1, '$line->[0]', null, null, null, null, null, 0, '$dt', '$dt', '$line->[6]', '1970-01-01 00:00:00.000000', '2099-01-01 00:00:00.000000', null, null, null, null, null, null, null, null, null, null, null, null, null, null, '$line->[0]', 0, $line->[1], $line->[2], $line->[3], '$line->[10]', $line->[4], 1, 1)";
     my $res = undef;
     eval{
         $res = $pg->db->query($sql);
@@ -193,7 +171,7 @@ sub updateProduct
     my $dt = Moment->now->get_dt();
     my $prod = &findProduct($pg,$line);
     my $sql = 'UPDATE dtb_product';
-    $sql .= " SET name='$line->[0]', product_master_name='$line->[0]',set_product_flg=$line->[1], product_division_id=$line->[2], product_handling_division_id=$line->[3],flight_not_flg=$line->[4], product_markup_rate_id=$line->[5],soldout_notices='$line->[10]'";
+    $sql .= " SET name='$line->[0]', product_master_name='$line->[0]',set_product_flg=$line->[1], product_division_id=$line->[2], product_handling_division_id=$line->[3],flight_not_flg=$line->[4], product_markup_rate_id=1,soldout_notices='$line->[10]'";
     $sql .= " WHERE product_id=".$prod->{'product_id'};
     #$utils->logger($sql) if DEBUG==1;
 
@@ -285,13 +263,20 @@ sub createProductStock
 
 sub updateProductStock
 {
-    my($pg,$line,$prod_id,$prod_class_id) = @_;
-    return undef if (!$prod_id || !$prod_class_id);
+    my($pg,$line) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
+    #----------------
+    my $sql = "select s.* from dtb_product_class AS c";
+    $sql .= " LEFT JOIN dtb_product_stock AS s ON c.product_class_id = s.product_class_id";
+    $sql .= " WHERE 1=1";
+    $sql .= " AND product_code='$line->[6]' LIMIT 1";
+    my $query = $pg->db->query($sql);
+    my $hash  = $query->hash;
+    #----------------
     my $dt = Moment->now->get_dt();
     my $sql = 'UPDATE dtb_product_stock';
     $sql .= " SET stock=$line->[7],update_date='$dt'";
-    $sql .= " WHERE product_class_id=$prod_id";
+    $sql .= " WHERE product_class_id=$hash->{'product_stock_id'}";
     my $res = undef;
     eval{
         $res = $pg->db->query($sql);
@@ -311,13 +296,13 @@ sub findProduct
     exit 1;
 #    return $res->hash;
 }
-sub find
-{
-    my ($pg,$line) = @_;
-    my $res = $pg->db->query('select count(*) from dtb_product limit 1');
+#sub find
+#{
+#    my ($pg,$line) = @_;
+#    my $res = $pg->db->query('select count(*) from dtb_product limit 1');
 #    warn Dumper $res->hash;
-    return $res->hash;
-}
+#    return $res->hash;
+#}
 
 1;
 
