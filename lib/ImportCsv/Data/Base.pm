@@ -24,8 +24,8 @@ sub get_conenction
 #        warn Dumper  $session->param('pg');
     my $pg = undef;
     eval{
-        #$pg = Mojo::Pg->new('postgresql://eccube@/eccube');
         $pg = Mojo::Pg->new('postgresql://eccube@/eccube');
+        #$pg = Mojo::Pg->new('postgresql://eccube@153.149.156.108/eccube_dev_share');
         $pg->password(DBPASSWD);
 #        $pg->options({AutoCommit => 1, RaiseError => 1});
     };

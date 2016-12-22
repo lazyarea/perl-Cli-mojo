@@ -7,7 +7,8 @@ use CGI::Session;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
-#use ImportCsv::Data::Dtb::ProductStock;
+use ImportCsv::Data::Dtb::Customer;
+use ImportCsv::Data::Mtb::Pref;
 use Moment;
 use Data::Dumper;
 
@@ -20,7 +21,7 @@ sub load_csv_from_file
     my $self = shift;
     my %res = ();
     my $utils = ImportCsv::Commons::Utils->new;
-    my $file = $utils->get_file_name(DATA_DIR, 'kihon');
+    my $file = $utils->get_file_name(DATA_DIR, 'nohin');
     if ( !$file ) {
         $utils->logger("target not found.");
         exit 1;
@@ -41,19 +42,20 @@ sub load_csv_from_file
     # BEGIN TRANSACTION
     #$pg->db->begin;
     eval{
+        my $session = CGI::Session->new();
         while ( my $row = $csv->getline( $fh ) ) {
             if ($c==0){ $c++; next}
             #-----------------------------skip
-            if ($row->[0] =~ /(3|4)/ ){
-                $utils->logger($c.'行目：会員種別'.$row->[0]);
+            if ($row->[10] =~ /(3|4)/ ){
+                $utils->logger($c.'行目：得意先区分'.$row->[0]);
                 next;
             }
             ##----------------------------validate start
             my $valid = undef;
             if ($file =~ /^NVH_NOHIN/i) {
-                $valid = $utils->validateMemberKihon($row);
+                $valid = $utils->validateMemberNohin($row);
             }elsif($file =~ /^FCH_NOHIN/i) {
-                $valid = $utils->validateOnlineKihon($row);
+                $valid = $utils->validateOnlineNohin($row);
             }
             if ($valid){
                 $valid->{'line_no'} = $c;
@@ -88,37 +90,30 @@ sub load_csv_from_file
 sub create_or_updateCustomerAddress
 {
     my($pg, $line, $file) = @_;
-    my $data = &findCustomerAddress($pg,$line,$file); #既存データ検索
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $customer = &findCustomer($pg,$line,$file); #既存データ検索
+    if ( !$customer ){
+        $utils->logger("$line->[0],$line->[1],$line->[2],$line->[3]");
+        return undef;
+    }
 
     my $ret = undef;
-    if ( !$data ){
-        if ($file =~ /^NVH_NOHIN/i) {
-            $ret = &createMember($pg,$line);
-        }elsif($file =~ /^FCH_NOHIN/i){
-            $ret = &createOnline($pg,$line);
-        }
-
-#        return $ret;
-    }else{
-        if ($file =~ /^NVH_NOHIN/i) {
-            $ret = &updateMember($pg,$line);
-        }elsif($file =~ /^FCH_NOHIN/i){
-            $ret = &updateOnline($pg,$line);
-        }
-        return undef;
+    if ($file =~ /^NVH_NOHIN/i) {
+        &createMemberNohin($pg,$line,$customer);
+    }elsif($file =~ /^FCH_NOHIN/i){
+        &createOnlineNohin($pg,$line,$customer);
     }
 }
 
-sub findCustomerAddress
+sub findCustomer
 {
     my ($pg,$line,$file) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
-=pod
     my $sql = 'SELECT * FROM dtb_customer';
     if ($file =~ /^NVH_NOHIN/i) {
-        $sql .= " WHERE craft_number='$line->[18]'" if $line->[18];
+        $sql .= " WHERE craft_number='$line->[1]'" if $line->[1];
     }elsif($file =~ /^FCH_NOHIN/i) {
-        $sql .= " WHERE client_code='$line->[17]'" if $line->[17];
+        $sql .= " WHERE client_code='$line->[0]'" if $line->[0];
     }
     my $ret = undef;
     eval{
@@ -127,55 +122,23 @@ sub findCustomerAddress
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        exit 1;
     }
-    #$utils->logger($sql) if DEBUG==1;
     my $hash = $ret->hash;
     return $hash;
-=cut
 }
 
-sub createMember
+sub createMemberNohin
 {
-    my ($pg,$line) =@_;
+    my ($pg,$line,$data) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-=pod
-    $utils->logger($sql) if DEBUG==1;
-    my $next = $pg->db->query("select nextval('dtb_customer_customer_id_seq')");
-    my $nextv = $next->hash->{'nextval'};
-    return $nextv;
-=cut
-}
-
-sub createOnline
-{
-    my ($pg,$line) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
-    my $dt = Moment->now->get_dt();
-=pod
-    eval{
-        $ret = $pg->db->query($sql);
-    };
-    if ($@) {
-        $utils->logger($sql);
-        $utils->logger($@);
-        return undef;
-        #exit 1;
-    }
-    #$utils->logger($sql) if DEBUG==1;
-    my $next = $pg->db->query("select nextval('dtb_customer_customer_id_seq')");
-    my $nextv = $next->hash->{'nextval'};
-    return $nextv;
-=cut
-}
-
-sub updateMember
-{
-    my ($pg,$line) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
-    my $dt = Moment->now->get_dt();
-=pod
+    my $sql = 'INSERT INTO dtb_customer_address(';
+    $sql .= 'customer_id,pref,name01,name02,kana01,kana02,company_name,zip01,zip02,zipcode,';
+    $sql .= 'addr01,addr02,addr03,tel01,fax01,create_date,update_date,del_flg,';
+    $sql .= 'rrr_customer_address_id,craft_number,delivery_name) VALUES (';
+    $sql .= "$data->{'customer_id'}, $line->[3], '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[11]',";
+    $sql .= "'$line->[12]', '$line->[11]$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[17]',";
+    $sql .= "'$dt', '$dt', 0, '$line->[2]', '$line->[1]', '$line->[9]')";
     my $ret = undef;
     eval{
         $ret = $pg->db->query($sql);
@@ -183,18 +146,33 @@ sub updateMember
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        return undef;
     }
-    return 1;
-=cut
+
+    my $next = $pg->db->query("select nextval('dtb_customer_address_customer_address_id_seq')");
+    my $nextv = $next->hash->{'nextval'};
+    return $nextv;
+
 }
 
-sub updateOnline
+sub createOnlineNohin
 {
-    my ($pg,$line) =@_;
+    my ($pg,$line,$data) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-=pod
+
+    my $pref = ImportCsv::Data::Mtb::Pref->new;
+    my $pref_dta = $pref->get_pref_id($pg, $line->[3]);
+    if (!$pref_dta){
+        $utils->logger($line->[3].' is pref ?');
+        return undef;
+    }
+    my $sql = 'INSERT INTO dtb_customer_address(';
+    $sql .= 'customer_id,pref,name01,name02,kana01,kana02,company_name,zip01,zip02,zipcode,';
+    $sql .= 'addr01,addr02,addr03,tel01,fax01,create_date,update_date,del_flg,';
+    $sql .= 'rrr_customer_address_id,delivery_name,client_code) VALUES (';
+    $sql .= "$data->{'customer_id'}, $pref_dta->{'id'}, '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[11]',";
+    $sql .= "'$line->[12]', '$line->[11]$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[17]',";
+    $sql .= "'$dt', '$dt', 0, '$line->[2]', '$line->[9]', '$line->[0]')";
     my $ret = undef;
     eval{
         $ret = $pg->db->query($sql);
@@ -202,11 +180,12 @@ sub updateOnline
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        return undef;
     }
-    return 1;
-=cut
+
+    my $next = $pg->db->query("select nextval('dtb_customer_address_customer_address_id_seq')");
+    my $nextv = $next->hash->{'nextval'};
+    return $nextv;
+
 }
 
 1;
-

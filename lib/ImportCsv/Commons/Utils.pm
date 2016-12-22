@@ -224,5 +224,39 @@ sub validateOnlineKihon
     return \%valid if (keys %valid);
 }
 
+sub validateMemberNohin
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+
+    if ( &len($line->[3],20) ){
+        $valid{$line->[3]} = 'is too long.';
+    }
+    if ( &len($line->[3],20) ){
+        $valid{$line->[3]} = 'is too long.';
+    }
+    if ( &len($line->[3],20) ){
+        $valid{$line->[3]} = 'is too long.';
+    }
+    return \%valid if (keys %valid);
+}
+
+sub validateOnlineNohin
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+
+    if ( &len($line->[3],20) ){
+        $valid{$line->[3]} = 'is too long.';
+    }
+    if ( &len($line->[3],20) ){
+        $valid{$line->[3]} = 'is too long.';
+    }
+    if ( &len($line->[3],20) ){
+        $valid{$line->[3]} = 'is too long.';
+    }
+    return \%valid if (keys %valid);
+}
+
 1;
 
