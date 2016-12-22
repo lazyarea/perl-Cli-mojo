@@ -11,7 +11,7 @@ use ImportCsv::Data::Dtb::ProductStock;
 use Moment;
 use Data::Dumper;
 
-use constant DEBUG => 0; # 1:true
+use constant DEBUG => 1; # 1:true
 use constant DATA_DIR => '/var/www/doc/data';
 use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
 
@@ -66,8 +66,8 @@ sub load_csv_from_file
         #----------------------------
         # validate end
         #----------------------------
-
             my $prod_last_value = &create_or_updateProduct( $pg, $row );
+            #$utils->logger( $c.":".$prod_last_value ) if DEBUG==1;
             my $prod_class_last_value = &create_or_updateProductClass($pg,$row, $prod_last_value->{'last_value'});
             &create_or_updateProductStock($pg, $row, $prod_last_value->{'last_value'}, $prod_class_last_value->{'last_value'});
             $c++;
@@ -153,9 +153,8 @@ sub createProduct
 #        $pg->db->rollback();
         $utils->logger($sql);
         $utils->logger($@);
-        exit 1;
     }
-    #$utils->logger($sql) if DEBUG==1;
+    $utils->logger($sql) if DEBUG==1;
     my $ret = $pg->db->query('select last_value from dtb_product_product_id_seq');
     return $ret->hash;
 }
@@ -178,7 +177,7 @@ sub updateProduct
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        exit 1;
+        #exit 1;
     }
 }
 
@@ -201,7 +200,7 @@ sub createProductClass
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        exit 1;
+        #exit 1;
     }
     my $ret = $pg->db->query('select last_value from dtb_product_class_product_class_id_seq');
     return $ret->hash;
@@ -253,7 +252,7 @@ sub createProductStock
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        exit 1;
+        #exit 1;
     }
 }
 
@@ -281,7 +280,7 @@ sub updateProductStock
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        exit 1;
+        #exit 1;
     }
 }
 
