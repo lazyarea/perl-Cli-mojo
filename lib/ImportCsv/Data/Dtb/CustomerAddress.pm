@@ -12,7 +12,7 @@ use ImportCsv::Data::Mtb::Pref;
 use Moment;
 use Data::Dumper;
 
-use constant DEBUG => 1; # 1:true
+use constant DEBUG => 0; # 1:true
 use constant DATA_DIR => '/var/www/doc/data';
 use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
 
