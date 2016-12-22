@@ -65,7 +65,9 @@ sub len
 sub is_numeric
 {
     my $str = shift;
-    if ( $str =~ /^\d+$/ ){
+    if ( $str =~ /^-\d+$/ ){
+        return undef;
+    }elsif ( $str =~ /^\d+$/ ){
         return undef;
     }
     return 1;
@@ -110,11 +112,11 @@ sub validateOnlineShohin
     }
     if ( $line->[7] =~ /^-[0-9]+$/ ){
     }elsif ( &is_numeric($line->[7]) ){
-        $valid{$line->[7]."_length"} = 'is too long.';
+        $valid{$line->[7]."_length"} = ' stock is too long.';
     }
-    if ( &is_numeric($line->[7]) ){
-        $valid{$line->[7]."_numeric"} = 'is not numeric.';
-    }
+#    if ( &is_numeric($line->[7]) ){
+#        $valid{$line->[7]."_numeric"} = ' stock is not numeric.';
+#    }
     if ( &is_numeric($line->[8]) ){
         $valid{$line->[8]} = 'is not numeric.';
     }
