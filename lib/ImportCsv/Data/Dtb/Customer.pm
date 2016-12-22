@@ -185,6 +185,8 @@ sub createOnline
     my $dt = Moment->now->get_dt();
     my $sex = $line->[1];
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
+    # 性別
+    $line->[1] = "null" if $line->[1] eq '';
     # $line->[19]保有ポイントTBD
     $line->[19] = 0 if ( !$line->[19]);
     # $line->[20]ポイント有効期限
@@ -200,8 +202,8 @@ sub createOnline
     $line->[22] = ($line->[22] =~ s/^0+//);
     # secret_key
     my $ramdom = $utils->generate_str();
-    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,client_code,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,black_rank,markup_rate,realize_point,point_expiration_date,secret_key) VALUES(';
-    $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, null, '$line->[17]', $line->[0], 1, 1, 1, null, 1, $line->[19], '$pexpired', '$ramdom')";
+    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,black_rank,markup_rate,realize_point,point_expiration_date,secret_key) VALUES(';
+    $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, '$line->[17]', $line->[0], 1, 1, 1, null, 1, $line->[19], '$pexpired', '$ramdom')";
     my $ret = undef;
     eval{
         $ret = $pg->db->query($sql);
@@ -245,7 +247,7 @@ sub updateMember
     # secret_key
     my $ramdom = $utils->generate_str();
     my $sql = 'UPDATE dtb_customer ';
-    $sql .= "status=$line->[22],sex=$line->[1],pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
+    $sql .= "SET status=$line->[22],sex=$line->[1],pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
     $sql .= " kana02='$line->[6]',company_name='$line->[7]',company_name2='$line->[8]',zip01='$line->[9]',zip02='$line->[10]',";
     $sql .= "addr01='$line->[11]',addr02='$line->[12]',addr03='$line->[13]',tel01='$line->[14]',tel02='$line->[15]',fax01='$line->[16]',";
     $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0],realize_point=$line->[19],point_expiration_date='$pexpired'";
@@ -268,7 +270,7 @@ sub updateOnline
     my ($pg,$line) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-    my $sex = $line->[1];
+    $line->[1] = "null" if $line->[1] eq '';
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     # $line->[19]保有ポイントTBD
     $line->[19] = 0 if ( !$line->[19]);
@@ -286,7 +288,7 @@ sub updateOnline
     # secret_key
     my $ramdom = $utils->generate_str();
     my $sql = 'UPDATE dtb_customer ';
-    $sql .= "status=$line->[22],sex=$line->[1],pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
+    $sql .= "SET status=$line->[22],sex=$line->[1],pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
     $sql .= " kana02='$line->[6]',company_name='$line->[7]',company_name2='$line->[8]',zip01='$line->[9]',zip02='$line->[10]',";
     $sql .= "addr01='$line->[11]',addr02='$line->[12]',addr03='$line->[13]',tel01='$line->[14]',tel02='$line->[15]',fax01='$line->[16]',";
     $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0],realize_point=$line->[19],point_expiration_date='$pexpired'";
