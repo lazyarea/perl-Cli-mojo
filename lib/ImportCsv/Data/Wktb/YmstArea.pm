@@ -132,7 +132,7 @@ sub insertArea
     my $pg = shift;
     my $utils = ImportCsv::Commons::Utils->new;
     my $cols = '';
-    for( my $i=0; $i<305;$i++){$cols .= ',col'.$i;}
+    for( my $i=0; $i<35;$i++){$cols .= ',col'.$i;}
     $cols =~ s/^,//;
     my $sql = 'INSERT INTO dtb_ymstarea ('.$cols.') SELECT * from vtb_ymstarea';
     eval{
