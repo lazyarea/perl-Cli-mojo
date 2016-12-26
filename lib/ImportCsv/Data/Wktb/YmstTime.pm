@@ -124,6 +124,7 @@ sub createTime
         $utils->logger($sql);
         $utils->logger($@);
     }
+    $sql = undef;
     $line = undef;
 }
 
