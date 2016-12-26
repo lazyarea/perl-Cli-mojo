@@ -10,7 +10,7 @@ use ImportCsv::Data::Base;
 use Moment;
 use Data::Dumper;
 
-use constant DEBUG => 1; # 1:true
+use constant DEBUG => 0; # 1:true
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
