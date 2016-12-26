@@ -11,7 +11,7 @@ use ImportCsv::Data::Mtb::Pref;
 use Moment;
 use Data::Dumper;
 
-use constant DEBUG => 1; # 1:true
+use constant DEBUG => 0; # 1:true
 #use constant DATA_DIR => '/var/www/doc/data';
 #use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
 
@@ -46,6 +46,7 @@ sub load_csv_from_file
     my $conn = ImportCsv::Data::Base->new;
     my $pg   = $conn->get_conenction(); # connection error を書く必要がある
     my $c = 0;
+    my $last_customer = '';
     # BEGIN TRANSACTION
     #$pg->db->begin;
     eval{
@@ -73,7 +74,20 @@ sub load_csv_from_file
                 next;
             }
             #----------------------------validate end
-            &create_or_updateCustomerAddress($pg,$row, $file);
+            my $del_flg = 0;
+            if ($file =~ /^NVH_NOHIN/i) {
+                if ( $last_customer ne $row->[1] ) {
+                    $del_flg = 1;
+                    $last_customer = $row->[1];
+                }
+            }elsif($file =~ /^FCH_NOHIN/i) {
+                if ( $last_customer ne $row->[0] ) {
+                    $del_flg = 1;
+                    $last_customer = $row->[0];
+
+                }
+            }
+            &createCustomerAddress($pg,$row, $file, $del_flg);
             #----------------------------
             $c++;
         }
@@ -94,16 +108,18 @@ sub load_csv_from_file
     $utils->logger($file.': done');
 }
 
-sub create_or_updateCustomerAddress
+sub createCustomerAddress
 {
-    my($pg, $line, $file) = @_;
+    my($pg, $line, $file, $del_flg) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $customer = &findCustomer($pg,$line,$file); #既存データ検索
     if ( !$customer ){
         $utils->logger("$line->[0],$line->[1],$line->[2],$line->[3]");
         return undef;
     }
-
+    if ( $del_flg == 1 ){
+        &deleteCustomerAddress($pg,$customer);
+    }
     my $ret = undef;
     if ($file =~ /^NVH_NOHIN/i) {
         &createMemberNohin($pg,$line,$customer);
@@ -133,6 +149,23 @@ sub findCustomer
     }
     my $hash = $ret->hash;
     return $hash;
+}
+
+sub deleteCustomerAddress{
+    my ($pg,$customer) = @_;
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $sql = 'DELETE FROM dtb_customer_address ';
+    $sql   .= " WHERE customer_id = '$customer->{'customer_id'}'";
+    my $ret = undef;
+    eval{
+        $ret = $pg->db->query($sql);
+    };
+    local $@;
+    if ($@) {
+        $utils->logger($sql);
+        $utils->logger($@);
+    }
+
 }
 
 sub createMemberNohin
