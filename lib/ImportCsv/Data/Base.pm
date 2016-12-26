@@ -3,6 +3,7 @@ package ImportCsv::Data::Base;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use Mojo::Pg;
+use ImportCsv::Commons::Utils;
 use Data::Dumper;
 use constant DEBUG => 0;
 
@@ -24,12 +25,32 @@ sub get_conenction
         $pg->password($self->commons_config->{'database'}->{'password'});
 #        $pg->options({AutoCommit => 1, RaiseError => 1});
     };
+    local $@;
     if ($@){
         $self->utils->logger($@);
         exit 1;
     }
+    &check_connected($pg);
     return $pg;
 }
+
+sub check_connected
+{
+    my $pg = shift;
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $sql = 'SELECT version();';
+    my $ret = undef;
+    local $@;
+    eval{
+        $ret = $pg->db->query($sql);
+    };
+    if ($@) {
+        $utils->logger($sql);
+        $utils->logger($@);
+        exit 1;
+    }
+}
+
 
 1;
 

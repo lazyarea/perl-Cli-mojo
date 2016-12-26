@@ -49,6 +49,7 @@ sub load_csv_from_file
     my $last_customer = '';
     # BEGIN TRANSACTION
     #$pg->db->begin;
+    local $@;
     eval{
         while ( my $row = $csv->getline( $fh ) ) {
             if ($c==0){ $c++; next}
@@ -95,7 +96,6 @@ sub load_csv_from_file
         # ACTION
         #$pg->db->commit;
     };
-    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -139,10 +139,10 @@ sub findCustomer
         $sql .= " WHERE client_code='$line->[0]'" if $line->[0];
     }
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -157,10 +157,10 @@ sub deleteCustomerAddress{
     my $sql = 'DELETE FROM dtb_customer_address ';
     $sql   .= " WHERE customer_id = '$customer->{'customer_id'}'";
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -181,10 +181,10 @@ sub createMemberNohin
     $sql .= "'$line->[12]', '$line->[11]$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[17]',";
     $sql .= "'$dt', '$dt', 0, '$line->[2]', '$line->[1]', '$line->[9]')";
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -216,10 +216,10 @@ sub createOnlineNohin
     $sql .= "'$line->[12]', '$line->[11]$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[17]',";
     $sql .= "'$dt', '$dt', 0, '$line->[2]', '$line->[9]', '$line->[0]')";
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);

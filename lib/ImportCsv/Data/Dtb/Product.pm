@@ -47,6 +47,7 @@ sub load_csv_from_file
     my $c = 0;
     # BEGIN TRANSACTION
     #$pg->db->begin;
+    local $@;
     eval{
         while ( my $row = $csv->getline( $fh ) ) {
             if ($c==0){ $c++; next}
@@ -82,7 +83,6 @@ sub load_csv_from_file
         # END TRANSACTION
         #$pg->db->commit;
     };
-    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -154,10 +154,10 @@ sub createProduct
     $sql   .= " (creator_id, status, name, note, description_list, description_detail, search_word, free_area, del_flg, create_date, update_date, catalog_product_code, start_datetime, end_datetime, point_flg, title1, title2, title3, title4, title5, title6, detail1, detail2, detail3, detail4, detail5, detail6, product_master_name, product_genre_id, set_product_flg, product_division_id, product_handling_division_id, soldout_notices, flight_not_flg, product_markup_rate_id, shipping_fee_type_id ) VALUES (";
     $sql .= "2, 2, '$line->[0]', null, null, null, null, null, 0, '$dt', '$dt', '$line->[6]', '1970-01-01 00:00:00.000000', '2099-01-01 00:00:00.000000', 0,  null, null, null, null, null, null, null, null, null, null, null, null, '$line->[0]', 0, $line->[1], $line->[2], $line->[3], '$line->[10]', $line->[4], 1, 1)";
     my $res = undef;
+    local $@;
     eval{
         $res = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
 #        $pg->db->rollback();
         $utils->logger($sql);
@@ -183,7 +183,6 @@ sub updateProduct
     eval{
         $res = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -204,10 +203,10 @@ sub createProductClass
     $sql .= '(product_class_id, product_id, product_type_id, class_category_id1, class_category_id2, delivery_date_id, creator_id, product_code, stock, stock_unlimited, sale_limit, price01, price02, delivery_fee, create_date, update_date, del_flg, stock_scheduled_sell) VALUES ';
     $sql .= "( $nextv, $prod_id, 1, null, null, null, 2, '$line->[6]', $line->[7], 0, null, null, $line->[9], null, '$dt', '$dt', 0, $line->[8])";
     my $res = undef;
+    local $@;
     eval{
         $res = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -238,10 +237,10 @@ sub updateProductClass
     $update_sql .= " WHERE product_code='$line->[6]'";
     #$utils->logger($update_sql) if DEBUG == 1;
     my $res = undef;
+    local $@;
     eval{
         $res = $pg->db->query($update_sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -258,10 +257,10 @@ sub createProductStock
     $sql .= ' (product_class_id, creator_id, stock, create_date, update_date) VALUES ';
     $sql .= "  ( $prod_class_id, 2, $line->[7], '$dt', '$dt')";
     my $res = undef;
+    local $@;
     eval{
         $res = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -287,10 +286,10 @@ sub updateProductStock
     $sql .= " SET stock=$line->[7],update_date='$dt'";
     $sql .= " WHERE product_class_id=$hash->{'product_stock_id'}";
     my $res = undef;
+    local $@;
     eval{
         $res = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);

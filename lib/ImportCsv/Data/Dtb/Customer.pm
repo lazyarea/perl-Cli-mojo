@@ -44,6 +44,7 @@ sub load_csv_from_file
     my $c = 0;
     # BEGIN TRANSACTION
     #$pg->db->begin;
+    local $@;
     eval{
         while ( my $row = $csv->getline( $fh ) ) {
             if ($c==0){ $c++; next}
@@ -77,7 +78,6 @@ sub load_csv_from_file
         # ACTION
         #$pg->db->commit;
     };
-    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -125,10 +125,10 @@ sub findCustomer
         $sql .= " WHERE client_code='$line->[17]'" if $line->[17];
     }
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -169,10 +169,10 @@ sub createMember
     my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,craft_number,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,black_rank,markup_rate,secret_key) VALUES(';
     $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, null, '$line->[18]', $line->[0], 1, 1, 1, null, 1, '$ramdom')";
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -212,10 +212,10 @@ sub createOnline
     my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,black_rank,markup_rate,secret_key) VALUES(';
     $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, '$line->[17]', $line->[0], 1, 1, 1, null, 1, '$ramdom')";
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -261,10 +261,10 @@ sub updateMember
     $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
     $sql .= " WHERE craft_number='$line->[18]'";
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -303,10 +303,10 @@ sub updateOnline
     $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
     $sql .= " WHERE client_code='$line->[17]'";
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);

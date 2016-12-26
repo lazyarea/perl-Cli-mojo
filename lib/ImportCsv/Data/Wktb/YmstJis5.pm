@@ -51,6 +51,7 @@ sub load_csv_from_file
     my $c = 0;
     # BEGIN TRANSACTION
     #$pg->db->begin;
+    local $@;
     eval{
         &truncateJis5( $pg );
         while ( my $row = $csv->getline( $fh ) ) {
@@ -62,7 +63,6 @@ sub load_csv_from_file
         # END TRANSACTION
         #$pg->db->commit;
     };
-    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -71,10 +71,10 @@ sub load_csv_from_file
     }
     $csv->eof or $csv->error_diag();
     close $fh;
+    local $@;
     eval{
         &insertJis5($pg);
     };
-    local $@;
     if ($@){
         $utils->logger('FAILED (wktb to dtb): '.$file);
         $utils->logger($@);
@@ -89,10 +89,10 @@ sub truncateJis5
     my ($pg) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'TRUNCATE wktb_ymstjis5';
+    local $@;
     eval{
         $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -100,10 +100,10 @@ sub truncateJis5
     }
     $sql = undef;
     $sql = 'TRUNCATE dtb_ymstjis5';
+    local $@;
     eval{
         $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -116,10 +116,10 @@ sub createJis5
     my ($pg,$line) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $sql = "INSERT INTO wktb_ymstjis5 (text) VALUES ('$line->[0]')";
+    local $@;
     eval{
         $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -132,10 +132,10 @@ sub insertJis5
     my $pg = shift;
     my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'INSERT INTO dtb_ymstjis5 (col0,col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,col11) SELECT * from vtb_ymstjis5';
+    local $@;
     eval{
         $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);

@@ -51,6 +51,7 @@ sub load_csv_from_file
     my $c = 0;
     # BEGIN TRANSACTION
     #$pg->db->begin;
+    local $@;
     eval{
         &truncateMtrx( $pg );
         while ( my $row = $csv->getline( $fh ) ) {
@@ -62,7 +63,6 @@ sub load_csv_from_file
         # END TRANSACTION
         #$pg->db->commit;
     };
-    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -71,10 +71,10 @@ sub load_csv_from_file
     }
     $csv->eof or $csv->error_diag();
     close $fh;
+    local $@;
     eval{
         &insertMtrx($pg);
     };
-    local $@;
     if ($@){
         $utils->logger('FAILED (wktb to dtb): '.$file);
         $utils->logger($@);
@@ -89,10 +89,10 @@ sub truncateMtrx
     my ($pg) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'TRUNCATE wktb_ymstmtrx';
+    local $@;
     eval{
         $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -100,10 +100,10 @@ sub truncateMtrx
     }
     $sql = undef;
     $sql = 'TRUNCATE dtb_ymstmtrx';
+    local $@;
     eval{
         $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -116,10 +116,10 @@ sub createMtrx
     my ($pg,$line) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $sql = "INSERT INTO wktb_ymstmtrx (text) VALUES ('$line->[0]')";
+    local $@;
     eval{
         $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -135,11 +135,10 @@ sub insertMtrx
     for( my $i=0; $i<305;$i++){$cols .= ',col'.$i;}
     $cols =~ s/^,//;
     my $sql = 'INSERT INTO dtb_ymstmtrx ('.$cols.') SELECT * from vtb_ymstmtrx';
-
+    local $@;
     eval{
         $pg->db->query($sql);
     };
-    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);

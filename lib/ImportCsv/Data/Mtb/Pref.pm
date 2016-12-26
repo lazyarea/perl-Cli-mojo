@@ -25,6 +25,7 @@ sub get_pref_id
     my $utils = ImportCsv::Commons::Utils->new;
     my $sql = "SELECT id from mtb_pref WHERE name = '$val'";
     my $ret = undef;
+    local $@;
     eval{
         $ret = $pg->db->query($sql);
     };
