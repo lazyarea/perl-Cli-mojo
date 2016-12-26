@@ -1,4 +1,4 @@
-package ImportCsv::Data::Wktb::YmstPost;
+package ImportCsv::Data::Wktb::YmstTime;
 
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
@@ -31,7 +31,7 @@ sub load_csv_from_file
     my $self = shift;
     my %res = ();
     my $utils = ImportCsv::Commons::Utils->new;
-    my $file = $self->utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'YMSTPOST');
+    my $file = $self->utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'YMSTTIME');
     if ( !$file ) {
         $utils->logger("target not found.");
         exit 1;
@@ -52,10 +52,10 @@ sub load_csv_from_file
     # BEGIN TRANSACTION
     #$pg->db->begin;
     eval{
-        &truncatePost( $pg );
+        &truncateTime( $pg );
         while ( my $row = $csv->getline( $fh ) ) {
             #if ($c==0){ $c++; next} # non header file.
-            &createPost( $pg, $row );
+            &createTime( $pg, $row );
             $row = undef;
             $c++;
         }
@@ -72,7 +72,7 @@ sub load_csv_from_file
     $csv->eof or $csv->error_diag();
     close $fh;
     eval{
-        &insertPost($pg);
+        &insertTime($pg);
     };
     local $@;
     if ($@){
@@ -84,11 +84,11 @@ sub load_csv_from_file
     $utils->logger($file.': done');
 }
 
-sub truncatePost
+sub truncateTime
 {
     my ($pg) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
-    my $sql = 'TRUNCATE wktb_ymstpost';
+    my $sql = 'TRUNCATE wktb_ymsttime';
     eval{
         $pg->db->query($sql);
     };
@@ -96,10 +96,10 @@ sub truncatePost
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        $utils->logger("FAILED TRUNCATE wktb_ymstpost.");
+        $utils->logger("FAILED TRUNCATE wktb_ymsttime.");
     }
     $sql = undef;
-    $sql = 'TRUNCATE dtb_ymstpost';
+    $sql = 'TRUNCATE dtb_ymsttime';
     eval{
         $pg->db->query($sql);
     };
@@ -107,15 +107,15 @@ sub truncatePost
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
-        $utils->logger("FAILED TRUNCATE dtb_ymstpost.");
+        $utils->logger("FAILED TRUNCATE dtb_ymsttime.");
     }
 }
 
-sub createPost
+sub createTime
 {
     my ($pg,$line) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
-    my $sql = "INSERT INTO wktb_ymstpost (text) VALUES ('$line->[0]')";
+    my $sql = "INSERT INTO wktb_ymsttime (text) VALUES ('$line->[0]')";
     eval{
         $pg->db->query($sql);
     };
@@ -127,11 +127,11 @@ sub createPost
     $line = undef;
 }
 
-sub insertPost
+sub insertTime
 {
     my $pg = shift;
     my $utils = ImportCsv::Commons::Utils->new;
-    my $sql = 'INSERT INTO dtb_ymstpost (col0,col1,col2,col3,col4,col5,col6,col7) SELECT * from vtb_ymstpost';
+    my $sql = 'INSERT INTO dtb_ymsttime (col0,col1,col2,col3,col4,col5,col6,col7) SELECT * from vtb_ymsttime';
     eval{
         $pg->db->query($sql);
     };

@@ -3,7 +3,6 @@ package ImportCsv::Data::Dtb::ProductStock;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use Mojo::Pg;
-use CGI::Session;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;

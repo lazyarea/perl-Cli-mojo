@@ -3,7 +3,6 @@ package ImportCsv::Data::Dtb::Product;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use Mojo::Pg;
-use CGI::Session;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
@@ -83,6 +82,7 @@ sub load_csv_from_file
         # END TRANSACTION
         #$pg->db->commit;
     };
+    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -157,6 +157,7 @@ sub createProduct
     eval{
         $res = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
 #        $pg->db->rollback();
         $utils->logger($sql);
@@ -182,6 +183,7 @@ sub updateProduct
     eval{
         $res = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -205,6 +207,7 @@ sub createProductClass
     eval{
         $res = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -238,6 +241,7 @@ sub updateProductClass
     eval{
         $res = $pg->db->query($update_sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -257,6 +261,7 @@ sub createProductStock
     eval{
         $res = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -285,6 +290,7 @@ sub updateProductStock
     eval{
         $res = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);

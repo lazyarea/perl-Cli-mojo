@@ -3,7 +3,6 @@ package ImportCsv::Data::Dtb::CustomerAddress;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use Mojo::Pg;
-use CGI::Session;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
@@ -12,7 +11,7 @@ use ImportCsv::Data::Mtb::Pref;
 use Moment;
 use Data::Dumper;
 
-use constant DEBUG => 0; # 1:true
+use constant DEBUG => 1; # 1:true
 #use constant DATA_DIR => '/var/www/doc/data';
 #use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
 
@@ -50,7 +49,6 @@ sub load_csv_from_file
     # BEGIN TRANSACTION
     #$pg->db->begin;
     eval{
-        my $session = CGI::Session->new();
         while ( my $row = $csv->getline( $fh ) ) {
             if ($c==0){ $c++; next}
             #-----------------------------skip
@@ -83,6 +81,7 @@ sub load_csv_from_file
         # ACTION
         #$pg->db->commit;
     };
+    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -127,6 +126,7 @@ sub findCustomer
     eval{
         $ret = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -151,6 +151,7 @@ sub createMemberNohin
     eval{
         $ret = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -185,10 +186,12 @@ sub createOnlineNohin
     eval{
         $ret = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
     }
+        $utils->logger($sql);
 
     my $next = $pg->db->query("select nextval('dtb_customer_address_customer_address_id_seq')");
     my $nextv = $next->hash->{'nextval'};

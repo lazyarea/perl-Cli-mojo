@@ -3,7 +3,6 @@ package ImportCsv::Data::Dtb::Customer;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use Mojo::Pg;
-use CGI::Session;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
@@ -78,6 +77,7 @@ sub load_csv_from_file
         # ACTION
         #$pg->db->commit;
     };
+    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -128,6 +128,7 @@ sub findCustomer
     eval{
         $ret = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -171,6 +172,7 @@ sub createMember
     eval{
         $ret = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -213,6 +215,7 @@ sub createOnline
     eval{
         $ret = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -261,6 +264,7 @@ sub updateMember
     eval{
         $ret = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
@@ -302,6 +306,7 @@ sub updateOnline
     eval{
         $ret = $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
