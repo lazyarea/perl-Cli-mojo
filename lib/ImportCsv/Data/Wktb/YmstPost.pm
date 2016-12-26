@@ -10,7 +10,7 @@ use ImportCsv::Data::Base;
 use Moment;
 use Data::Dumper;
 
-use constant DEBUG => 0; # 1:true
+use constant DEBUG => 1; # 1:true
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
@@ -62,6 +62,7 @@ sub load_csv_from_file
         # END TRANSACTION
         #$pg->db->commit;
     };
+    local $@;
     if ($@){
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
@@ -70,6 +71,15 @@ sub load_csv_from_file
     }
     $csv->eof or $csv->error_diag();
     close $fh;
+    eval{
+        &insertPost($pg);
+    };
+    local $@;
+    if ($@){
+        $utils->logger('FAILED (wktb to dtb): '.$file);
+        $utils->logger($@);
+        exit 1;
+    }
     if ( DEBUG == 0){ move $fpath, $self->commons_config->{'data'}->{'data_moved_dir'}.'/'.$file or die $!; }
     $utils->logger($file.': done');
 }
@@ -82,13 +92,25 @@ sub truncatePost
     eval{
         $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
         $utils->logger("FAILED TRUNCATE wktb_ymstpost.");
     }
-
+    $sql = undef;
+    $sql = 'TRUNCATE dtb_ymstpost';
+    eval{
+        $pg->db->query($sql);
+    };
+    local $@;
+    if ($@) {
+        $utils->logger($sql);
+        $utils->logger($@);
+        $utils->logger("FAILED TRUNCATE dtb_ymstpost.");
+    }
 }
+
 sub createPost
 {
     my ($pg,$line) = @_;
@@ -97,11 +119,26 @@ sub createPost
     eval{
         $pg->db->query($sql);
     };
+    local $@;
     if ($@) {
         $utils->logger($sql);
         $utils->logger($@);
     }
     $line = undef;
+}
+
+sub insertPost
+{
+    my $pg = shift;
+    my $sql = 'INSERT INTO dtb_ymstpost (col0,col1,col2,col3,col4,col5,col6,col7) SELECT * from vtb_ymstpost';
+    eval{
+        $pg->db->query($sql);
+    };
+    local $@;
+    if ($@) {
+        $utils->logger($sql);
+        $utils->logger($@);
+    }
 }
 
 1;
