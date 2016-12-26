@@ -224,8 +224,6 @@ sub createOnlineNohin
         $utils->logger($sql);
         $utils->logger($@);
     }
-        $utils->logger($sql);
-
     my $next = $pg->db->query("select nextval('dtb_customer_address_customer_address_id_seq')");
     my $nextv = $next->hash->{'nextval'};
     return $nextv;
