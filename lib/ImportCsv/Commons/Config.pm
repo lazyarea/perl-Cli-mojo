@@ -30,7 +30,7 @@ sub load_config
     my $self = shift;
     my %config;
     $config{'data'}{'data_dir'} = DATA_DIR;
-    $config{'data'}{'data_meved_dir'} = DATA_MOVED_DIR;
+    $config{'data'}{'data_moved_dir'} = DATA_MOVED_DIR;
     $config{'log'}{'log_dir'}  = LOG_DIR;
     $config{'log'}{'log_file'} = LOG_FILE;
     $config{'database'}{'host'}     = DBHOST;
