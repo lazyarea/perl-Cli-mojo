@@ -72,11 +72,11 @@ sub is_numeric
 {
     my $str = shift;
     if ( $str =~ /^-\d+$/ ){
-        return undef;
+        return 1;
     }elsif ( $str =~ /^\d+$/ ){
-        return undef;
+        return 1;
     }
-    return 1;
+    return undef;
 }
 
 sub generate_str
@@ -101,13 +101,13 @@ sub validateOnlineShohin
     if ( &len($line->[0], 40) ){
         $valid{$line->[0]} = 'too long';
     }
-    if ( &is_numeric($line->[1]) ){
+    if ( !&is_numeric($line->[1]) ){
         $valid{$line->[1]} = 'is not numeric.';
     }
-    if ( &is_numeric($line->[2]) ){
+    if ( !&is_numeric($line->[2]) ){
         $valid{$line->[2]} = 'is not numeric.';
     }
-    if ( &is_numeric($line->[3]) ){
+    if ( !&is_numeric($line->[3]) ){
         $valid{$line->[3]} = 'is not numeric.';
     }
     if ( 0 != $line->[4] ){
@@ -117,13 +117,13 @@ sub validateOnlineShohin
         $valid{$line->[6]} = 'is too long.';
     }
     if ( $line->[7] =~ /^-[0-9]+$/ ){
-    }elsif ( &is_numeric($line->[7]) ){
+    }elsif ( !&is_numeric($line->[7] ) ){
         $valid{$line->[7]."_length"} = ' stock is too long.';
     }
-#    if ( &is_numeric($line->[7]) ){
+#    if ( !&is_numeric($line->[7]) ){
 #        $valid{$line->[7]."_numeric"} = ' stock is not numeric.';
 #    }
-    if ( &is_numeric($line->[8]) ){
+    if ( !&is_numeric($line->[8]) ){
         $valid{$line->[8]} = 'is not numeric.';
     }
     return \%valid if (keys %valid);
@@ -136,10 +136,10 @@ sub validateMemberShohin
     if ( &len($line->[0], 40) ){
         $valid{$line->[0]} = 'too long';
     }
-    if ( &is_numeric($line->[1]) ){
+    if ( !&is_numeric($line->[1]) ){
         $valid{$line->[1]} = 'is not numeric.';
     }
-    if ( &is_numeric($line->[2]) ){
+    if ( !&is_numeric($line->[2]) ){
         $valid{$line->[2]} = 'is not numeric.';
     }
     if ( $line->[3] != 1 ){
@@ -155,10 +155,10 @@ sub validateMemberShohin
         $valid{$line->[7]."_length"} = 'is too long.';
     }
     if ( $line->[7] =~ /^-[0-9]+$/ ){
-    }elsif ( &is_numeric($line->[7]) ){
+    }elsif ( !&is_numeric($line->[7]) ){
         $valid{$line->[7]."_numeric"} = 'is not numeric.';
     }
-    if ( &is_numeric($line->[8]) ){
+    if ( !&is_numeric($line->[8]) ){
         $valid{$line->[8]} = 'is not numeric.';
     }
     return \%valid if (keys %valid);
@@ -285,7 +285,10 @@ sub validateOnlineShikaku
         $valid{$line->[0]} = 'is wrong pattern(7strings).';
     }
     if ( $line->[2] !~ /^[0-9]{1,3}$/ ){
-        $valid{$line->[2]} = 'is {wrong pattern,too long}.';
+#        $valid{$line->[2]} = 'is {wrong pattern,too long}.';
+    }
+    if ( length($line->[2]) > 3 ){
+        $valid{$line->[2]} = 'is too long.';
     }
     return \%valid if (keys %valid);
 }
