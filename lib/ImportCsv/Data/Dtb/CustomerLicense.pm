@@ -54,11 +54,6 @@ sub load_csv_from_file
     eval{
         while ( my $row = $csv->getline( $fh ) ) {
             if ($c==0){ $c++; next}
-            #-----------------------------skip
-            if ($row->[0] =~ /(3|4)/ ){
-                $utils->logger($c.'行目：会員種別'.$row->[0]);
-                next;
-            }
             ##----------------------------validate start
             my $valid = undef;
             my $del_flg = 0;
@@ -117,12 +112,15 @@ sub createCustomerLicense
     if ( !$customer ){
         $utils->logger("customer data: not found.");
     }
-    my $license = &findLicense($pg,{'name' => "$line->[2]"}) if ( $line->[2] !~ /^[0-9]+$/); # Online
+    my $license;
+    $license = &findLicense($pg,{'name' => "$line->[2]"}) if ( $line->[2] !~ /^[0-9]+$/); # Online
+    $license = &findLicense($pg,{'code' => "$line->[2]"}) if ( $line->[2] =~ /^[0-9]+$/); # Member
     return undef if (!$license);
     $line->[2] = $license->{'license_id'};
 
     &deleteCustomerLicense($pg, $customer->{'customer_id'}) if ( $del_flg);
     my $ret = undef;
+
     if ($file =~ /^NVH_SHIKAKU/i) {
         $ret = &createMember($pg,$customer->{'customer_id'},$line->[2]);
     }elsif($file =~ /^FCH_SHIKAKU/i){
