@@ -264,5 +264,31 @@ sub validateOnlineNohin
     return \%valid if (keys %valid);
 }
 
+sub validateMemberShikaku
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+    if ( $line->[1] !~ /^[0-9]{6}$/ ){
+        $valid{$line->[1]} = 'is wrong pattern(6strings).';
+    }
+    if ( $line->[2] !~ /^[0-9]{2}$/ ){
+        $valid{$line->[2]} = 'is wrong pattern(2strings).';
+    }
+    return \%valid if (keys %valid);
+}
+
+sub validateOnlineShikaku
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+    if ( $line->[0] !~ /^[0-9]{7}$/ ){
+        $valid{$line->[0]} = 'is wrong pattern(7strings).';
+    }
+    if ( $line->[2] !~ /^[0-9]{1,3}$/ ){
+        $valid{$line->[2]} = 'is {wrong pattern,too long}.';
+    }
+    return \%valid if (keys %valid);
+}
+
 1;
 
