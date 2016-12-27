@@ -6,6 +6,8 @@ use Mojo::Pg;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
+#use ImportCsv::Data::Plg::Point;
+#use ImportCsv::Data::Plg::PointCustomer;
 use Moment;
 use Data::Dumper;
 use constant DEBUG => 0; # 1:true
@@ -24,6 +26,8 @@ sub load_csv_from_file
     my $self = shift;
     my %res = ();
     my $utils = ImportCsv::Commons::Utils->new;
+    #my $po    = ImportCsv::Data::Plg::Point->new;
+    #my $pc    = ImportCsv::Data::Plg::PointCustomer->new;
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'kihon');
     if ( !$file ) {
         $utils->logger("target not found.");
@@ -70,8 +74,10 @@ sub load_csv_from_file
                 next;
             }
             #----------------------------validate end
-            &create_or_updateCustomer($pg,$row, $file);
+            my $customer_id = &create_or_updateCustomer($pg,$row, $file);
+            #$po->addPointFromKihon($pg,$customer_id,$row->[19],$row->[20]);
             #----------------------------
+            $row = undef;
             $c++;
         }
         # END TRANS:w
@@ -102,16 +108,15 @@ sub create_or_updateCustomer
         }elsif($file =~ /^FCH_KIHON/i){
             $ret = &createOnline($pg,$line);
         }
-
-#        return $ret;
     }else{
         if ($file =~ /^NVH_KIHON/i) {
             $ret = &updateMember($pg,$line);
         }elsif($file =~ /^FCH_KIHON/i){
             $ret = &updateOnline($pg,$line);
         }
-        return undef;
     }
+    my $customer_id = ( $ret =~ /[0-9][0-9]+/ ) ? $ret : $data->{'customer_id'};
+    return $customer_id;
 }
 
 sub findCustomer

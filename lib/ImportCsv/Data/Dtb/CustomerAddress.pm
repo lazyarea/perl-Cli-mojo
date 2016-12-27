@@ -173,6 +173,7 @@ sub createMemberNohin
     my ($pg,$line,$data) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
+    for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     my $sql = 'INSERT INTO dtb_customer_address(';
     $sql .= 'customer_id,pref,name01,name02,kana01,kana02,company_name,zip01,zip02,zipcode,';
     $sql .= 'addr01,addr02,addr03,tel01,fax01,create_date,update_date,del_flg,';
@@ -201,7 +202,7 @@ sub createOnlineNohin
     my ($pg,$line,$data) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-
+    for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     my $pref = ImportCsv::Data::Mtb::Pref->new;
     my $pref_dta = $pref->get_pref_id($pg, $line->[3]);
     if (!$pref_dta){
