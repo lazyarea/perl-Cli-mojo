@@ -170,18 +170,26 @@ sub createMember
         $pexpired = sprintf("%4s-%2s-%2s 00:00:00", $y,$m,$d);
     }else{$pexpired = '1970-01-01 00:00:00';}
     # $line->[21]支払い状況は会員の場合NULL
+    my $black='NULL';
+    if ($line->[21]){
+        my $b = ImportCsv::Data::Mtb::BlackRank->new;
+        my $br = $b->get_black_rank_id($pg,$line->[21]);
+        $black=$br->{'id'};
+    }
     # $line->[22]会員状況(2)
-    $line->[22] = ($line->[22] =~ s/^0+//);
+    #$line->[22] = ($line->[22] =~ s/^0+//);
     # $line->[23]会員種別
     if ( $line->[23] ){
         my $ck = ImportCsv::Data::Dtb::CustomerKind->new;
         my $ck_id = $ck->find($pg,{'code'=>$line->[23]});
         $line->[23] = $ck_id->{'customer_kind_id'};
     }else{ $line->[23] = 1;}
+    #--
+    my ($cols,$vals)='';
     # secret_key
     my $ramdom = $utils->generate_str();
-    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,craft_number,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,black_rank,markup_rate,secret_key) VALUES(';
-    $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, null, '$line->[18]', $line->[0], $line->[23], 1, 1, null, 100.00, '$ramdom')";
+    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,craft_number,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,markup_rate,secret_key,black_rank) VALUES(';
+    $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, null, '$line->[18]', $line->[0], $line->[23], 1, 1, 100.00, '$ramdom', $black)";
     my $ret = undef;
     local $@;
     eval{
@@ -219,10 +227,11 @@ sub createOnline
         $pexpired = sprintf("%4s-%2s-%2s 00:00:00", $y,$m,$d);
     }else{$pexpired = '1970-01-01 00:00:00';}
     # $line->[21]支払い状況は会員の場合NULL
-    if ( $line->[21] ) {
-        my $br = ImportCsv::Data::Mtb::BlackRank->new;
-        my $black_id = $br->get_black_rank_id($pg,$line->[21]);
-        $line->[21] = ($black_id) ? $black_id->{'id'} : "NULL";
+    my $black='NULL';
+    if ($line->[21]){
+        my $b = ImportCsv::Data::Mtb::BlackRank->new;
+        my $br = $b->get_black_rank_id($pg,$line->[21]);
+        $black=$br->{'id'};
     }
     # $line->[22]会員状況(2)
     $line->[22] = ($line->[22] =~ s/^0+//);
@@ -234,8 +243,8 @@ sub createOnline
     }else{ $line->[23] = 1;}
     # secret_key
     my $ramdom = $utils->generate_str();
-    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,black_rank,markup_rate,secret_key) VALUES(';
-    $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, '$line->[17]', $line->[0], $line->[23], 1, 1, null, 100.00, '$ramdom')";
+    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,markup_rate,secret_key,black_rank) VALUES(';
+    $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, '$line->[17]', $line->[0], $line->[23], 1, 1, 100.00, '$ramdom',$black)";
 
     my $ret = undef;
     local $@;

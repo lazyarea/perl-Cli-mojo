@@ -121,8 +121,6 @@ sub createCustomerLicense
     return undef if (!$license);
     $line->[2] = $license->{'license_id'};
 
-    my $customer_license = &findCustomerLicense($pg,$customer->{'customer_id'},$line->[2]); #既存データ検索
-#    return undef if ( !$customer_license  ); #同じライセンスが存在する場合
     &deleteCustomerLicense($pg, $customer->{'customer_id'}) if ( $del_flg);
     my $ret = undef;
     if ($file =~ /^NVH_SHIKAKU/i) {
@@ -130,15 +128,6 @@ sub createCustomerLicense
     }elsif($file =~ /^FCH_SHIKAKU/i){
         $ret = &createOnline($pg,$customer->{'customer_id'},$line->[2]);
     }
-=pod
-#        if ($file =~ /^NVH_SHIKAKU/i) {
-#            $ret = &updateMember($pg,$line);
-#        }elsif($file =~ /^FCH_SHIKAKU/i){
-#            $ret = &updateOnline($pg,$line);
-#        }
-=cut
-#    my $customer_id = ( $ret =~ /[0-9][0-9]+/ ) ? $ret : $data->{'customer_id'};
-#    return $customer_id;
 }
 
 sub findCustomer
