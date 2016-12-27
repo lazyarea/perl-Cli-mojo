@@ -26,6 +26,7 @@ sub load_csv_from_file
 {
     my $self = shift;
     my %res = ();
+    my $last_customer = '';
     my $utils = ImportCsv::Commons::Utils->new;
     #my $po    = ImportCsv::Data::Plg::Point->new;
     #my $pc    = ImportCsv::Data::Plg::PointCustomer->new;
@@ -60,10 +61,19 @@ sub load_csv_from_file
             }
             ##----------------------------validate start
             my $valid = undef;
+            my $del_flg = 0;
             if ($file =~ /^NVH_SHIKAKU/i) {
                 $valid = $utils->validateMemberShikaku($row);
+                if ( $last_customer ne $row->[1] ) {
+                    $del_flg=1;
+                    $last_customer = $row->[1];
+                }
             }elsif($file =~ /^FCH_SHIKAKU/i) {
                 $valid = $utils->validateOnlineShikaku($row);
+                if ( $last_customer ne $row->[0] ) {
+                    $del_flg=1;
+                    $last_customer = $row->[0];
+                }
             }
             if ($valid){
                 $valid->{'line_no'} = $c;
@@ -75,7 +85,9 @@ sub load_csv_from_file
                 next;
             }
             #----------------------------validate end
-            my $customer_id = &create_or_updateCustomerLicense($pg,$row, $file);
+
+            #----------------------------del_flg
+            my $customer_id = &createCustomerLicense($pg,$row, $file,$del_flg);
             #$po->addPointFromShikaku($pg,$customer_id,$row->[19],$row->[20]);
             #----------------------------
             $row = undef;
@@ -97,9 +109,9 @@ sub load_csv_from_file
     $utils->logger($file.': done');
 }
 
-sub create_or_updateCustomerLicense
+sub createCustomerLicense
 {
-    my($pg, $line, $file) = @_;
+    my($pg, $line, $file, $del_flg) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $customer = &findCustomer($pg,$line,$file); #既存データ検索
     if ( !$customer ){
@@ -110,7 +122,8 @@ sub create_or_updateCustomerLicense
     $line->[2] = $license->{'license_id'};
 
     my $customer_license = &findCustomerLicense($pg,$customer->{'customer_id'},$line->[2]); #既存データ検索
-    return undef if ( !$customer_license  ); #同じライセンスが存在する場合
+#    return undef if ( !$customer_license  ); #同じライセンスが存在する場合
+    &deleteCustomerLicense($pg, $customer->{'customer_id'}) if ( $del_flg);
     my $ret = undef;
     if ($file =~ /^NVH_SHIKAKU/i) {
         $ret = &createMember($pg,$customer->{'customer_id'},$line->[2]);
@@ -198,6 +211,24 @@ sub findLicense
     }
     my $hash = $ret->hash;
     return $hash;
+}
+
+sub deleteCustomerLicense
+{
+    my ($pg,$customer_id) =@_;
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $sql = 'DELETE FROM dtb_customer_license WHERE customer_id = '.$customer_id;
+    my $ret = undef;
+    local $@;
+    eval{
+        $ret = $pg->db->query($sql);
+    };
+    if ($@) {
+        $utils->logger($sql);
+        $utils->logger($@);
+        return undef;
+    }
+    return 1;
 }
 
 sub createMember
