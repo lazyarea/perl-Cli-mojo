@@ -7,11 +7,11 @@ use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
 use ImportCsv::Data::Dtb::Customer;
-#use ImportCsv::Data::Plg::Point;
-#use ImportCsv::Data::Plg::PointCustomer;
 use Moment;
 use Data::Dumper;
-use constant DEBUG => 1; # 1:true
+use constant DEBUG => 0; # 1:true
+use constant CUSTOMER_KIND_CODE_1 => 2; # 有料会員2
+use constant CUSTOMER_KIND_CODE_2 => 3; # 有料会員2
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
@@ -28,8 +28,6 @@ sub load_csv_from_file
     my %res = ();
     my $last_customer = '';
     my $utils = ImportCsv::Commons::Utils->new;
-    #my $po    = ImportCsv::Data::Plg::Point->new;
-    #my $pc    = ImportCsv::Data::Plg::PointCustomer->new;
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'shikaku');
     if ( !$file ) {
         $utils->logger("target not found.");
@@ -80,10 +78,8 @@ sub load_csv_from_file
                 next;
             }
             #----------------------------validate end
-
             #----------------------------del_flg
             my $customer_id = &createCustomerLicense($pg,$row, $file,$del_flg);
-            #$po->addPointFromShikaku($pg,$customer_id,$row->[19],$row->[20]);
             #----------------------------
             $row = undef;
             $c++;
@@ -113,7 +109,7 @@ sub createCustomerLicense
         $utils->logger("customer data: not found.");
     }
     my $license;
-    $license = &findLicense($pg,{'name' => "$line->[2]"}) if ( $line->[2] !~ /^[0-9]+$/); # Online
+    $license = &findLicense($pg,{'rrr_name' => "$line->[2]"}) if ( $line->[2] !~ /^[0-9]+$/); # Online
     $license = &findLicense($pg,{'code' => "$line->[2]"}) if ( $line->[2] =~ /^[0-9]+$/); # Member
     return undef if (!$license);
     $line->[2] = $license->{'license_id'};
@@ -197,6 +193,7 @@ sub findLicense
         return undef;
     }
     my $hash = $ret->hash;
+    $utils->logger('data not found. from dtb_license.') if (!$hash);
     return $hash;
 }
 
@@ -216,6 +213,33 @@ sub deleteCustomerLicense
         return undef;
     }
     return 1;
+}
+
+sub updateCustomer
+{
+    my ($pg,$customer_id,$license_id) =@_;
+    return undef if ($license_id !~ /^(15|16|17)$/ );
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $dt = Moment->now->get_dt();
+#    my $license;
+#    $license = &findLicense($pg,{'rrr_name' => "$license_id"}) if ( $license_id !~ /^[0-9]+$/); # Online
+#    $license = &findLicense($pg,{'code' => "$license_id"}) if ( $license_id =~ /^[0-9]+$/); # Member
+
+#    return undef if (!$license);
+    my $sql = 'UPDATE dtb_customer SET customer_kind_id=';
+    if ($license_id =~ /^(15|16)$/ ){ $sql .= 2;} # 有料会員1
+    if ($license_id == 17 ){$sql .= 3;} # 有料会員2
+    $sql .=   " WHERE customer_id = $customer_id";
+    my $ret = undef;
+    local $@;
+    eval{
+        $ret = $pg->db->query($sql);
+    };
+    if ($@) {
+        $utils->logger($sql);
+        $utils->logger($@);
+        return undef;
+    }
 }
 
 sub createMember
@@ -239,6 +263,7 @@ sub createMember
     #$utils->logger($sql) if DEBUG==1;
     my $curr = $pg->db->query("select currval('dtb_customer_license_customer_license_id_seq')");
     my $currv = $curr->hash->{'currval'};
+    &updateCustomer($pg,$customer_id,$license_id) if ($license_id =~ /^(15|16|17)$/ );
     return $currv;
 }
 
@@ -262,96 +287,7 @@ sub createOnline
     #$utils->logger($sql) if DEBUG==1;
     my $next = $pg->db->query("select nextval('dtb_customer_customer_id_seq')");
     my $nextv = $next->hash->{'nextval'};
+    &updateCustomer($pg,$customer_id,$license_id) if ($license_id =~ /^(15|16|17)$/ );
     return $nextv;
 }
-
-sub updateMember
-{
-    my ($pg,$line) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
-    my $dt = Moment->now->get_dt();
-    my $sex = $line->[1];
-    if ($line->[18]){
-        $sex = 1 if $line->[1] == 2;
-        $sex = 2 if $line->[1] == 1;
-    }
-    for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
-    # $line->[19]保有ポイントTBD
-    $line->[19] = 0 if ( !$line->[19]);
-    # $line->[20]ポイント有効期限
-    my $pexpired = $line->[20];
-    if ( length($line->[20]) ){
-        my $y = substr($line->[20],0,4);
-        my $m = substr($line->[20],4,2);
-        my $d = substr($line->[20],6,2);
-        $pexpired = sprintf("%4s-%2s-%2s 00:00:00", $y,$m,$d);
-    }else{$pexpired = '1970-01-01 00:00:00';}
-    # $line->[21]支払い状況は会員の場合NULL
-    # $line->[22]会員状況(2)
-    $line->[22] = ($line->[22] =~ s/^0+//);
-    # secret_key
-    my $ramdom = $utils->generate_str();
-    my $sql = 'UPDATE dtb_customer ';
-    $sql .= "SET status=$line->[22],sex=$line->[1],pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
-    $sql .= " kana02='$line->[6]',company_name='$line->[7]',company_name2='$line->[8]',zip01='$line->[9]',zip02='$line->[10]',";
-    $sql .= "addr01='$line->[11]',addr02='$line->[12]',addr03='$line->[13]',tel01='$line->[14]',tel02='$line->[15]',fax01='$line->[16]',";
-    $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
-    $sql .= " WHERE craft_number='$line->[18]'";
-    my $ret = undef;
-    local $@;
-    eval{
-        $ret = $pg->db->query($sql);
-    };
-    if ($@) {
-        $utils->logger($sql);
-        $utils->logger($@);
-        return undef;
-    }
-    return 1;
-
-}
-
-sub updateOnline
-{
-    my ($pg,$line) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
-    my $dt = Moment->now->get_dt();
-    $line->[1] = "null" if $line->[1] eq '';
-    for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
-    # $line->[19]保有ポイントTBD
-    $line->[19] = 0 if ( !$line->[19]);
-    # $line->[20]ポイント有効期限
-    my $pexpired = $line->[20];
-    if ( length($line->[20]) ){
-        my $y = substr($line->[20],0,4);
-        my $m = substr($line->[20],4,2);
-        my $d = substr($line->[20],6,2);
-        $pexpired = sprintf("%4s-%2s-%2s 00:00:00", $y,$m,$d);
-    }else{$pexpired = '1970-01-01 00:00:00';}
-    # $line->[21]支払い状況は会員の場合NULL
-    # $line->[22]会員状況(2)
-    $line->[22] = ($line->[22] =~ s/^0+//);
-    # secret_key
-    my $ramdom = $utils->generate_str();
-    my $sql = 'UPDATE dtb_customer ';
-    $sql .= "SET status=$line->[22],sex=$line->[1],pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
-    $sql .= " kana02='$line->[6]',company_name='$line->[7]',company_name2='$line->[8]',zip01='$line->[9]',zip02='$line->[10]',";
-    $sql .= "addr01='$line->[11]',addr02='$line->[12]',addr03='$line->[13]',tel01='$line->[14]',tel02='$line->[15]',fax01='$line->[16]',";
-    $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
-    $sql .= " WHERE client_code='$line->[17]'";
-    my $ret = undef;
-    local $@;
-    eval{
-        $ret = $pg->db->query($sql);
-    };
-    if ($@) {
-        $utils->logger($sql);
-        $utils->logger($@);
-        return undef;
-    }
-    return 1;
-
-}
-
 1;
-
