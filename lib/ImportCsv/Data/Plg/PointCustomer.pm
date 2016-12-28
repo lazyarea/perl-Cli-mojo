@@ -25,11 +25,6 @@ sub new
     return bless $self, $class;
 }
 
-sub addFromKihon
-{
-    my ($self,$pg,$line,$customer_id) = @_;
-    warn Dumper $customer_id;
-}
 
 sub findCustomer
 {

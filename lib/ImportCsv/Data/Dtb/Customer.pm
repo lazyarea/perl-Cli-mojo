@@ -8,11 +8,11 @@ use File::Copy;
 use ImportCsv::Data::Base;
 use ImportCsv::Data::Dtb::CustomerKind;
 use ImportCsv::Data::Mtb::BlackRank;
-#use ImportCsv::Data::Plg::Point;
+use ImportCsv::Data::Plg::Point;
 #use ImportCsv::Data::Plg::PointCustomer;
 use Moment;
 use Data::Dumper;
-use constant DEBUG => 0; # 1:true
+use constant DEBUG => 1; # 1:true
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
@@ -28,7 +28,7 @@ sub load_csv_from_file
     my $self = shift;
     my %res = ();
     my $utils = ImportCsv::Commons::Utils->new;
-    #my $po    = ImportCsv::Data::Plg::Point->new;
+    my $po    = ImportCsv::Data::Plg::Point->new;
     #my $pc    = ImportCsv::Data::Plg::PointCustomer->new;
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'kihon');
     if ( !$file ) {
@@ -78,7 +78,7 @@ sub load_csv_from_file
             }
             #----------------------------validate end
             my $customer_id = &create_or_updateCustomer($pg,$row, $file);
-            #$po->addPointFromKihon($pg,$customer_id,$row->[19],$row->[20]);
+            #$po->addPointFromKihon($pg,{'customer_id'=>$customer_id,'point'=>$row->[19],'expired'=>$row->[20]}) if ($row->[19]);
             #----------------------------
             $row = undef;
             $c++;
@@ -102,7 +102,10 @@ sub load_csv_from_file
 sub create_or_updateCustomer
 {
     my($pg, $line, $file) = @_;
-    my $data = &findCustomer($pg,$line,$file); #既存データ検索
+    my %cond;
+    $cond{'craft_number'} = $line->[18] if ($file =~ /^NVH_KIHON/i);
+    $cond{'client_code'}  = $line->[17] if ($file =~ /^FCH_KIHON/i);
+    my $data = &findCustomer($pg, \%cond); #既存データ検索
 
     my $ret = undef;
     if ( !$data ){
@@ -124,14 +127,24 @@ sub create_or_updateCustomer
 
 sub findCustomer
 {
-    my ($pg,$line,$file) =@_;
+    my ($pg,$cond,$limit) =@_;
+    $limit = 1 if (!$limit);
     my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'SELECT * FROM dtb_customer';
+    $sql .= ' WHERE 1=1';
+    for (keys $cond) {
+        $sql .= " AND $_ = $cond->{$_}" if ($utils->is_numeric($_));
+        $sql .= " AND $_ = '$cond->{$_}'" if (!$utils->is_numeric($_));
+    }
+    $sql .= " LIMIT $limit";
+=pod
     if ($file =~ /^NVH_KIHON/i) {
         $sql .= " WHERE craft_number='$line->[18]'" if $line->[18];
     }elsif($file =~ /^FCH_KIHON/i) {
         $sql .= " WHERE client_code='$line->[17]'" if $line->[17];
     }
+=cut
+$utils->logger($sql);
     my $ret = undef;
     local $@;
     eval{
@@ -153,10 +166,9 @@ sub createMember
     my ($pg,$line) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-    my $sex = $line->[1];
     if ($line->[18]){
-        $sex = 1 if $line->[1] == 2;
-        $sex = 2 if $line->[1] == 1;
+        $line->[1] = 1 if $line->[1] == 2;
+        $line->[1] = 2 if $line->[1] == 1;
     }
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     # $line->[19]保有ポイントTBD
@@ -268,10 +280,9 @@ sub updateMember
     my ($pg,$line) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-    my $sex = $line->[1];
     if ($line->[18]){
-        $sex = 1 if $line->[1] == 2;
-        $sex = 2 if $line->[1] == 1;
+        $line->[1] = 1 if $line->[1] == 2;
+        $line->[1] = 2 if $line->[1] == 1;
     }
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     # $line->[19]保有ポイントTBD
@@ -286,7 +297,7 @@ sub updateMember
     }else{$pexpired = '1970-01-01 00:00:00';}
     # $line->[21]支払い状況は会員の場合NULL
     # $line->[22]会員状況(2)
-    $line->[22] = ($line->[22] =~ s/^0+//);
+    #$line->[22] = ($line->[22] =~ s/^0+//);
     # $line->[23]会員種別
     if( $line->[23] ){
         my $ck = ImportCsv::Data::Dtb::CustomerKind->new;
@@ -333,6 +344,12 @@ sub updateOnline
         $pexpired = sprintf("%4s-%2s-%2s 00:00:00", $y,$m,$d);
     }else{$pexpired = '1970-01-01 00:00:00';}
     # $line->[21]支払い状況は会員の場合NULL
+    my $black='NULL';
+    if ($line->[21]){
+        my $b = ImportCsv::Data::Mtb::BlackRank->new;
+        my $br = $b->get_black_rank_id($pg,$line->[21]);
+        $black=$br->{'id'};
+    }
     # $line->[22]会員状況(2)
     $line->[22] = ($line->[22] =~ s/^0+//);
     # $line->[23]会員種別

@@ -6,6 +6,8 @@ use Mojo::Pg;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
+use ImportCsv::Commons::Utils;
+use ImportCsv::Data::Plg::PointCustomer;
 use Moment;
 use Data::Dumper;
 use constant DEBUG => 0; # 1:true
@@ -27,6 +29,17 @@ sub new
 
 sub addPointFromKihon
 {
-    my $self = shift;
+    my ($self, $pg, $data) = @_;
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $pc = ImportCsv::Data::Plg::PointCustomer->new;
+    $pc->addPlgPointCustomer($pg,$data);
+}
+
+sub addPlgPoint
+{
+    my ($pg, $data) = @_;
+warn Dumper $data;
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $sql = 'INSERT INTO plg_point';
 }
 1;
