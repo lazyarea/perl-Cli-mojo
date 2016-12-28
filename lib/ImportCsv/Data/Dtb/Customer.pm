@@ -78,7 +78,7 @@ sub load_csv_from_file
             }
             #----------------------------validate end
             my $customer_id = &create_or_updateCustomer($pg,$row, $file);
-            #$po->addPointFromKihon($pg,{'customer_id'=>$customer_id,'point'=>$row->[19],'expired'=>$row->[20]}) if ($row->[19]);
+            $po->addPointFromKihon($pg,{'customer_id'=>$customer_id,'point'=>$row->[19],'expired'=>$row->[20]}) if ($row->[19]);
             #----------------------------
             $row = undef;
             $c++;
