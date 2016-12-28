@@ -9,10 +9,7 @@ use ImportCsv::Data::Base;
 use ImportCsv::Data::Dtb::ProductStock;
 use Moment;
 use Data::Dumper;
-
 use constant DEBUG => 0; # 1:true
-#use constant DATA_DIR => '/var/www/doc/data';
-#use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
@@ -20,6 +17,14 @@ has commons_config => sub {
 };
 has utils => sub{
      return ImportCsv::Commons::Utils->new;
+};
+has member_kubun => sub{
+    my %kubun = ('01' => 0, '02' => 1, '03' => 1, '04' => 1, '99' => 99);
+    return \%kubun;
+};
+has online_kubun => sub{
+    my %kubun = ('0' => 0, '1' => 1, '2' => 2, '3' => 3, '4' => 99);
+    return \%kubun;
 };
 
 sub load_csv_from_file
@@ -57,8 +62,10 @@ sub load_csv_from_file
             my $valid = undef;
             if ($file =~ /^NVH_SHOHIN/i) {
                 $valid = $utils->validateMemberShohin($row);
+                $row->[2] = $self->member_kubun->{$row->[2]};
             }elsif($file =~ /^FCH_SHOHIN/i) {
                 $valid = $utils->validateOnlineShohin($row);
+                $row->[2] = $self->online_kubun->{$row->[2]};
             }
             if ($valid){
                 $valid->{'line_no'} = $c;
@@ -68,7 +75,6 @@ sub load_csv_from_file
                     $utils->logger( "$k => $v");
                 }
 
-#                $utils->logger($valid);
                 next;
             }
         #----------------------------
@@ -163,7 +169,7 @@ sub createProduct
         $utils->logger($sql);
         $utils->logger($@);
     }
-    $utils->logger($sql) if DEBUG==1;
+    #$utils->logger($sql) if DEBUG==1;
     my $ret = $pg->db->query('select last_value from dtb_product_product_id_seq');
     return $ret->hash;
 }
