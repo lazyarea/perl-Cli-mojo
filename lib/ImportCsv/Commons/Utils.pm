@@ -10,6 +10,7 @@ use constant LOG_FILE  => '/mojo.log';
 use Text::CSV;
 use Data::Dumper;
 use ImportCsv::Commons::Config;
+use Time::Piece;
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
@@ -293,5 +294,85 @@ sub validateOnlineShikaku
     return \%valid if (keys %valid);
 }
 
-1;
+sub validateMemberPointHistory
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+    # ポイント確定区分
+    if ( $line->[10] !~ /^[0-9]$/ ){
+        $valid{$line->[10]} = 'is wrong pattern(1strings).';
+    }
 
+    return \%valid if (keys %valid);
+    return undef if ($line->[10] != 1);
+
+    if ( $line->[1] !~ /^[0-9]{6}$/ ){
+        $valid{$line->[1]} = 'is wrong pattern(6strings).';
+    }
+    if ( $line->[2] !~ /^[0-9]{8}$/ ){
+        $valid{$line->[2]} = 'is wrong pattern(8strings).';
+    }
+    if ( $line->[3] !~ /^[0-9]{10}$/ ){
+        $valid{$line->[3]} = 'is wrong pattern(10strings).';
+    }
+    if ( $line->[4] !~ /^-?[0-9]{1,10}$/ ){
+        $valid{$line->[4]} = 'is wrong pattern.';
+    }
+    if ( $line->[5] !~ /^-?[0-9]{1,10}$/ ){
+        $valid{$line->[5]} = 'is wrong pattern.';
+    }
+    if ( $line->[6] !~ /^[0-9]{2}$/ ){
+        $valid{$line->[6]} = 'is wrong pattern(2strings).';
+    }
+    if ( $line->[7] !~ /^-?[0-9]{1,10}$/ ){
+        $valid{$line->[7]} = 'is wrong pattern.';
+    }
+    if ( $line->[8] !~ /^-?[0-9]{1,10}$/ ){
+        $valid{$line->[8]} = 'is wrong pattern.';
+    }
+    if ( $line->[9] !~ /^-?[0-9]{1,10}$/ ){
+        $valid{$line->[9]} = 'is wrong pattern.';
+    }
+    # 伝票 NO が無い場合も対応
+    if ( $line->[11] !~ /^([0-9]{8})?$/ ){
+        $valid{$line->[11]} = 'is wrong pattern(8strings).';
+    }
+    if ( $line->[12] !~ /^[0-9]{8}$/ ){
+        $valid{$line->[12]} = 'is wrong pattern(8strings).';
+    }
+    if ( $line->[13] !~ /^[0-9]{8}$/ ){
+        $valid{$line->[13]} = 'is wrong pattern(8strings).';
+    }
+    return \%valid if (keys %valid);
+}
+
+sub validateOnlinePointHistory
+{
+    my ($self,$line) = @_;
+    my %valid = ();
+    if ( $line->[0] !~ /^[0-9]{7}$/ ){
+        $valid{$line->[0]} = 'is wrong pattern(7strings).';
+    }
+    if ( $line->[9] !~ /^-?[0-9]{1,10}$/ ){
+        $valid{$line->[9]} = 'is wrong pattern.';
+    }
+    if ( $line->[11] !~ /^[0-9]{8}$/ ){
+        $valid{$line->[11]} = 'is wrong pattern(8strings).';
+    }
+    if ( $line->[12] !~ /^[0-9]{8}$/ ){
+        $valid{$line->[12]} = 'is wrong pattern(8strings).';
+    }
+    if ( $line->[13] !~ /^[0-9]{8}$/ ){
+        $valid{$line->[13]} = 'is wrong pattern(8strings).';
+    }
+    return \%valid if (keys %valid);
+}
+
+sub yyyyMMdd2TimePiece
+{
+	my ($self,$str) = @_;
+	# デリミタなしだと strptime が使えない
+	return Time::Piece->strptime(substr($str, 0, 4) . '-' . substr($str, 4, 2) . '-' . substr($str, 6, 2), '%Y-%m-%d');
+}
+
+1;

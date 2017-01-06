@@ -32,9 +32,7 @@ sub addPointFromKihon
     my ($self, $pg, $data) = @_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $pc = ImportCsv::Data::Plg::PointCustomer->new;
-    my $point_customer_id = $pc->addPlgPointCustomer($pg,$data);
-    # point_customer にレコード追加まで
-#    &addPlgPoint($pg,$data);
+    $pc->addPlgPointCustomer($pg,$data);
 }
 
 sub addPlgPoint

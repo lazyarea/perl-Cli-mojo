@@ -8,11 +8,11 @@ use File::Copy;
 use ImportCsv::Data::Base;
 use ImportCsv::Data::Dtb::CustomerKind;
 use ImportCsv::Data::Mtb::BlackRank;
-use ImportCsv::Data::Plg::Point;
+#use ImportCsv::Data::Plg::Point;
 #use ImportCsv::Data::Plg::PointCustomer;
 use Moment;
 use Data::Dumper;
-use constant DEBUG => 1; # 1:true
+use constant DEBUG => 0; # 1:true
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
@@ -28,7 +28,7 @@ sub load_csv_from_file
     my $self = shift;
     my %res = ();
     my $utils = ImportCsv::Commons::Utils->new;
-    my $po    = ImportCsv::Data::Plg::Point->new;
+    #my $po    = ImportCsv::Data::Plg::Point->new;
     #my $pc    = ImportCsv::Data::Plg::PointCustomer->new;
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'kihon');
     if ( !$file ) {
@@ -78,7 +78,7 @@ sub load_csv_from_file
             }
             #----------------------------validate end
             my $customer_id = &create_or_updateCustomer($pg,$row, $file);
-            $po->addPointFromKihon($pg,{'customer_id'=>$customer_id,'point'=>$row->[19],'expired'=>$row->[20]}) if ($row->[19]);
+            #$po->addPointFromKihon($pg,{'customer_id'=>$customer_id,'point'=>$row->[19],'expired'=>$row->[20]}) if ($row->[19]);
             #----------------------------
             $row = undef;
             $c++;
@@ -137,14 +137,6 @@ sub findCustomer
         $sql .= " AND $_ = '$cond->{$_}'" if (!$utils->is_numeric($_));
     }
     $sql .= " LIMIT $limit";
-=pod
-    if ($file =~ /^NVH_KIHON/i) {
-        $sql .= " WHERE craft_number='$line->[18]'" if $line->[18];
-    }elsif($file =~ /^FCH_KIHON/i) {
-        $sql .= " WHERE client_code='$line->[17]'" if $line->[17];
-    }
-=cut
-$utils->logger($sql);
     my $ret = undef;
     local $@;
     eval{
@@ -166,10 +158,13 @@ sub createMember
     my ($pg,$line) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-    if ($line->[18]){
-        $line->[1] = 1 if $line->[1] == 2;
-        $line->[1] = 2 if $line->[1] == 1;
+    my $sex = "null";
+    if ($line->[1] == 1) {
+        $sex = 2;
+    } elsif ($line->[1] == 2) {
+        $sex = 1;
     }
+
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     # $line->[19]保有ポイントTBD
     $line->[19] = 0 if ( !$line->[19]);
@@ -189,7 +184,7 @@ sub createMember
         $black=$br->{'id'};
     }
     # $line->[22]会員状況(2)
-    #$line->[22] = ($line->[22] =~ s/^0+//);
+    my $situation_id = sprintf('%d',$line->[22]);
     # $line->[23]会員種別
     if ( $line->[23] ){
         my $ck = ImportCsv::Data::Dtb::CustomerKind->new;
@@ -201,7 +196,7 @@ sub createMember
     # secret_key
     my $ramdom = $utils->generate_str();
     my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,craft_number,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,markup_rate,secret_key,black_rank) VALUES(';
-    $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, null, '$line->[18]', $line->[0], $line->[23], 1, 1, 100.00, '$ramdom', $black)";
+    $sql .= "2, $sex, $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, null, '$line->[18]', $line->[0], $line->[23], $situation_id, $line->[0], 100.00, '$ramdom', $black) RETURNING customer_id;";
     my $ret = undef;
     local $@;
     eval{
@@ -214,9 +209,7 @@ sub createMember
         #exit 1;
     }
     #$utils->logger($sql) if DEBUG==1;
-    my $next = $pg->db->query("select currval('dtb_customer_customer_id_seq')");
-    my $nextv = $next->hash->{'currval'};
-    return $nextv;
+    return $ret->hash->{'customer_id'};
 }
 
 sub createOnline
@@ -227,7 +220,7 @@ sub createOnline
     my $sex = $line->[1];
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     # 性別
-    $line->[1] = "null" if $line->[1] eq '';
+    $sex = "null" if $line->[1] eq '';
     # $line->[19]保有ポイントTBD
     $line->[19] = 0 if ( !$line->[19]);
     # $line->[20]ポイント有効期限
@@ -246,7 +239,7 @@ sub createOnline
         $black=$br->{'id'};
     }
     # $line->[22]会員状況(2)
-    $line->[22] = ($line->[22] =~ s/^0+//);
+    my $situation_id = sprintf('%d',$line->[22]);
     # $line->[23]会員種別
     if( $line->[23] ){
         my $ck = ImportCsv::Data::Dtb::CustomerKind->new;
@@ -256,8 +249,7 @@ sub createOnline
     # secret_key
     my $ramdom = $utils->generate_str();
     my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,markup_rate,secret_key,black_rank) VALUES(';
-    $sql .= "$line->[22], $line->[1], $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, '$line->[17]', $line->[0], $line->[23], 1, 1, 100.00, '$ramdom',$black)";
-
+    $sql .= "2, $sex, $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, '$line->[17]', $line->[0], $line->[23], $situation_id, $line->[0], 100.00, '$ramdom',$black) RETURNING customer_id;";
     my $ret = undef;
     local $@;
     eval{
@@ -270,9 +262,7 @@ sub createOnline
         #exit 1;
     }
     #$utils->logger($sql) if DEBUG==1;
-    my $next = $pg->db->query("select currval('dtb_customer_customer_id_seq')");
-    my $nextv = $next->hash->{'currval'};
-    return $nextv;
+    return $ret->hash->{'customer_id'};
 }
 
 sub updateMember
@@ -280,9 +270,11 @@ sub updateMember
     my ($pg,$line) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-    if ($line->[18]){
-        $line->[1] = 1 if $line->[1] == 2;
-        $line->[1] = 2 if $line->[1] == 1;
+    my $sex = "null";
+    if ($line->[1] == 1) {
+        $sex = 2;
+    } elsif ($line->[1] == 2) {
+        $sex = 1;
     }
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     # $line->[19]保有ポイントTBD
@@ -297,7 +289,7 @@ sub updateMember
     }else{$pexpired = '1970-01-01 00:00:00';}
     # $line->[21]支払い状況は会員の場合NULL
     # $line->[22]会員状況(2)
-    #$line->[22] = ($line->[22] =~ s/^0+//);
+    my $situation_id = sprintf('%d',$line->[22]);
     # $line->[23]会員種別
     if( $line->[23] ){
         my $ck = ImportCsv::Data::Dtb::CustomerKind->new;
@@ -307,7 +299,7 @@ sub updateMember
     # secret_key
     my $ramdom = $utils->generate_str();
     my $sql = 'UPDATE dtb_customer ';
-    $sql .= "SET status=$line->[22],sex=$line->[1],pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
+    $sql .= "SET customer_situation_id=$situation_id,sex=$sex,pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
     $sql .= " kana02='$line->[6]',company_name='$line->[7]',company_name2='$line->[8]',zip01='$line->[9]',zip02='$line->[10]',";
     $sql .= "addr01='$line->[11]',addr02='$line->[12]',addr03='$line->[13]',tel01='$line->[14]',tel02='$line->[15]',fax01='$line->[16]',";
     $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
@@ -331,7 +323,8 @@ sub updateOnline
     my ($pg,$line) =@_;
     my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-    $line->[1] = "null" if $line->[1] eq '';
+    my $sex = $line->[1];
+    $sex = "null" if $line->[1] eq '';
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     # $line->[19]保有ポイントTBD
     $line->[19] = 0 if ( !$line->[19]);
@@ -351,7 +344,7 @@ sub updateOnline
         $black=$br->{'id'};
     }
     # $line->[22]会員状況(2)
-    $line->[22] = ($line->[22] =~ s/^0+//);
+    my $situation_id = sprintf('%d',$line->[22]);
     # $line->[23]会員種別
     if( $line->[23] ){
         my $ck = ImportCsv::Data::Dtb::CustomerKind->new;
@@ -361,7 +354,7 @@ sub updateOnline
     # secret_key
     my $ramdom = $utils->generate_str();
     my $sql = 'UPDATE dtb_customer ';
-    $sql .= "SET status=$line->[22],sex=$line->[1],pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
+    $sql .= "SET customer_situation_id=$situation_id,sex=$sex,pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
     $sql .= " kana02='$line->[6]',company_name='$line->[7]',company_name2='$line->[8]',zip01='$line->[9]',zip02='$line->[10]',";
     $sql .= "addr01='$line->[11]',addr02='$line->[12]',addr03='$line->[13]',tel01='$line->[14]',tel02='$line->[15]',fax01='$line->[16]',";
     $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";

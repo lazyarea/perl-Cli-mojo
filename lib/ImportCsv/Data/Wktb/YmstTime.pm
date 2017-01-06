@@ -133,7 +133,7 @@ sub insertTime
     my $pg = shift;
     my $utils = ImportCsv::Commons::Utils->new;
     local $@;
-    my $sql = 'INSERT INTO dtb_ymsttime (col0,col1,col2,col3,col4,col5,col6,col7) SELECT * from vtb_ymsttime';
+    my $sql = 'INSERT INTO dtb_ymsttime (col0,col1,col2,col3,col4,col5,col6,col7,col8) SELECT * from vtb_ymsttime';
     eval{
         $pg->db->query($sql);
     };
