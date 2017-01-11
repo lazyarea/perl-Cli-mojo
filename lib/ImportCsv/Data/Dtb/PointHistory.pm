@@ -150,6 +150,7 @@ sub load_csv_online
             #my $errorFilePath = get_error_file_path($self, $file);
             #register_online($errorFilePath, $utils, $pg, $data);
             my $ret = register_online(undef, $utils, $pg, $data);
+            warn Dumper $ret;
             if ( ref $ret){
                 $ret->{line_no} = $c;
                 for( keys $ret){ $utils->logger( $_.": ".$ret->{$_});}
@@ -162,6 +163,25 @@ sub load_csv_online
         $utils->logger($@);
         exit 1;
     }
+}
+
+=pod
+確定済みのポイント数一覧を返す
+\PLugin\Point\Repository\PoingRepository::getFixPointNum($id)
+=cut
+sub get_fix_point_num
+{
+    my ($pg, $customer_id) = @_;
+    my $sql = "SELECT SUM(p.plg_dynamic_point) AS point_sum
+    FROM plg_point AS p
+    LEFT JOIN plg_point_customer AS pc on p.plg_point_customer_id = pc.plg_point_customer_id
+    INNER JOIN plg_point_status  AS ps on pc.plg_point_customer_id = ps.plg_point_customer_id
+    WHERE 1=1
+    AND p.customer_id = ? AND ps.status = 1";
+    my $ret = $pg->db->query($sql,$customer_id);
+    return $ret->hash->{point_sum} if ($ret->rows > 0);
+    # warn Dumper $sql;
+    # warn Dumper $ret->hash;
 }
 
 sub get_plg_point_info_id
@@ -252,13 +272,25 @@ sub register_online
 {
     my ($errorFilePath, $utils, $pg, $data) = @_;
     my %valid = ();
-    if ( !get_rrr_order_no_from_snapshot($pg, $data) ){
+    my $point_snapshot= get_rrr_order_no_from_snapshot($pg, $data);
+    if ( !$point_snapshot  ){
         $valid{message} = 'client_code:'.$data->{client_code}.' AND rrr_order_no: '
         .$data->{rrr_order_no}.' is not found from plg_point_snapshot';
         return \%valid;
     }
-    update_point_snapshots($utils, $pg, $data);
-    return update_point_status($utils, $pg, $data);
+#    update_point_snapshots($utils, $pg, $data);
+    update_point_status($utils, $pg, $data);
+    my $customer_id = get_customer_id_by_client_code($pg,$data->{client_code});
+    my $cur_plg_point_customer = get_last_point_customer($pg, $customer_id); #　紐づけ前のplg_point_customerから最後のレコード抽出
+    my $plg_point_customer_id = calculate_point($utils, $pg, $data, $point_snapshot); # 保有ポイント再計算後、plg_point_customerへ最新データを作る
+
+    warn Dumper $customer_id;
+    warn Dumper $cur_plg_point_customer;
+    warn Dumper $plg_point_customer_id;
+
+    # plg_point, plg_point_snapshot, plg_point_status のplg_point_customer_idを$plg_point_customer_idへ変える。
+    rebind_plg_point($pg, {'new_customer_id' => , 'cur_customer_id' => $cur_plg_point_customer});
+
 =pod
     local $@;
     eval {
@@ -273,6 +305,13 @@ sub register_online
         exit 1;
     }
 =cut
+}
+
+sub rebind_plg_point
+{
+    my ($pg,$data) = @_;
+    warn Dumper "rebind_plg_point";
+    warn Dumper $data;
 }
 
 sub get_customer_id_by_craft_number
@@ -510,6 +549,22 @@ EOS
     return 0;
 }
 
+=pod
+ポイント再計算させる
+=cut
+sub calculate_point
+{
+    my ($utils, $pg, $data, $point_snapshot) = @_;
+    my $customer_id = get_customer_id_by_client_code($pg, $data->{client_code});
+    my $calculateCurrentPoint = get_fix_point_num($pg, $customer_id);
+    my %params=();
+    $params{customer_id} = $customer_id;
+    $params{plg_point_current} = $calculateCurrentPoint; # ポイント更新後の値
+    $params{last_point_customer_id} = $point_snapshot->{plg_point_customer_id};
+    my $id = register_point_customer($utils, $pg, $customer_id, {'point_allocation' => $calculateCurrentPoint});
+    return $id;
+}
+
 sub update_point_status
 {
     my ($utils, $pg, $data) = @_;
@@ -527,11 +582,47 @@ EOS
     return $ret->rows;
 }
 
+sub update_point_snapshots_re
+{
+    my ($pg, $data) = @_;
+    # my $sql = create_update_sql('plg_point_status', $data);
+    my $sql = 'UPDATE plg_point_snapshot SET plg_point_customer_id = ? WHERE 1=1  AND plg_point_customer_id = ?';
+    my $ret = $pg->db->query($sql, ($data->{plg_point_customer_id},$data->{last_point_customer_id}));
+}
+
+sub update_point_status_re
+{
+    my ($pg, $data) = @_;
+    # my $sql = create_update_sql('plg_point_status', $data);
+    my $sql = 'UPDATE plg_point_status SET plg_point_customer_id = ? WHERE 1=1  AND plg_point_customer_id = ?';
+    my $ret = $pg->db->query($sql, ($data->{plg_point_customer_id},$data->{last_point_customer_id}));
+}
+
 sub update_point_snapshots
 {
-    my ($utils, $pg, $data) = @_;
+    my ($utils, $pg, $data) = @_; # いらなくなった感じ
     my $sql = 'update plg_point_snapshot SET plg_point_add = ? WHERE rrr_order_no = ? AND client_code = ?';
     my $ret = $pg->db->query($sql, ($data->{plg_point_add}, $data->{rrr_order_no}, $data->{client_code}));
+}
+
+sub create_point_customer{
+    my ($pg,$data) = @_;
+    my $utils = ImportCsv::Commons::Utils->new;
+    my $dt = Moment->now->get_dt();
+    my $nextval = $pg->db->query("SELECT nextval('plg_point_customer_plg_point_customer_id_seq')");
+    my $sql = 'INSERT INTO plg_point_customer(plg_point_customer_id,customer_id, plg_point_current,
+         create_date,update_date) VALUES (?,?,?,?,?)';
+    my $ret = $pg->db->query($sql,($nextval->hash->{nextval},$data->{customer_id},$data->{plg_point_current},$dt,$dt));
+
+    # get lastval from plg_point_customer
+    $ret = undef;
+    $ret = $pg->db->query("select currval('plg_point_customer_plg_point_customer_id_seq')"); # get currval
+    my $hash = $ret->hash;
+    my %params = ();
+    $params{plg_point_customer_id} = $hash->{currval};
+    $params{last_point_customer_id} = $data->{last_point_customer_id};
+    update_point_snapshots_re ($pg, \%params);
+    update_point_status_re($pg, \%params);
 }
 
 sub get_rrr_order_no_from_snapshot
@@ -540,10 +631,21 @@ sub get_rrr_order_no_from_snapshot
     return undef if ( !$data->{rrr_order_no});
     my $sql = 'SELECT * FROM plg_point_snapshot WHERE rrr_order_no = ? AND client_code = ?';
     my $ret = $pg->db->query($sql, ($data->{rrr_order_no}, $data->{client_code}));
-    if ( !$ret->hash ){
+    my $hash = $ret->hash;
+    if ( !$hash ){
         return undef;
     }
-    return 1;
+    return $hash;
+}
+
+sub get_last_point_customer
+{
+    my ($pg,$customer_id) = @_;
+    return undef if (!$customer_id);
+    my $sql = "SELECT * FROM plg_point_customer WHERE customer_id = ? ORDER BY plg_point_customer_id DESC LIMIT 1";
+    my $ret = $pg->db->query($sql, ($customer_id));
+    my $hash = $ret->hash;
+    return $hash;
 }
 
 sub get_error_file_path
