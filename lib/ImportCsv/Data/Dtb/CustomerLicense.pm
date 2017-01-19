@@ -10,24 +10,23 @@ use ImportCsv::Data::Dtb::Customer;
 use Moment;
 use Data::Dumper;
 use constant DEBUG => 0; # 1:true
-use constant CUSTOMER_KIND_CODE_1 => 2; # 有料会員2
+use constant LOG_FILE => 'customer_license.log';
+use constant CUSTOMER_KIND_CODE_1 => 2; # 有料会員1
 use constant CUSTOMER_KIND_CODE_2 => 3; # 有料会員2
+
+our $utils;
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
-};
-
 
 sub load_csv_from_file
 {
     my $self = shift;
     my %res = ();
     my $last_customer = '';
-    my $utils = ImportCsv::Commons::Utils->new;
+    $utils = ImportCsv::Commons::Utils->new('log_file_name' => LOG_FILE);
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'shikaku');
     if ( !$file ) {
         $utils->logger("target not found.");
@@ -103,7 +102,6 @@ sub load_csv_from_file
 sub createCustomerLicense
 {
     my($pg, $line, $file, $del_flg) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $customer = &findCustomer($pg,$line,$file); #既存データ検索
     if ( !$customer ){
         $utils->logger("customer data: not found.");
@@ -127,7 +125,6 @@ sub createCustomerLicense
 sub findCustomer
 {
     my ($pg,$line,$file) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'SELECT * FROM dtb_customer';
     if ($file =~ /^NVH_SHIKAKU/i) {
         $sql .= " WHERE craft_number='$line->[1]'" if $line->[1];
@@ -153,7 +150,6 @@ sub findCustomer
 sub findCustomerLicense
 {
     my ($pg,$customer_id,$license_id) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'SELECT * FROM dtb_customer_license';
     $sql .= " WHERE customer_id = $customer_id AND license_id = $license_id";
     my $ret = undef;
@@ -175,7 +171,6 @@ sub findCustomerLicense
 sub findLicense
 {
     my ($pg,$cond) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'SELECT * FROM dtb_license';
     $sql .= " WHERE 1=1";
     for (keys $cond) {
@@ -200,7 +195,6 @@ sub findLicense
 sub deleteCustomerLicense
 {
     my ($pg,$customer_id) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'DELETE FROM dtb_customer_license WHERE customer_id = '.$customer_id;
     my $ret = undef;
     local $@;
@@ -219,16 +213,11 @@ sub updateCustomer
 {
     my ($pg,$customer_id,$license_id) =@_;
     return undef if ($license_id !~ /^(15|16|17)$/ );
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
-#    my $license;
-#    $license = &findLicense($pg,{'rrr_name' => "$license_id"}) if ( $license_id !~ /^[0-9]+$/); # Online
-#    $license = &findLicense($pg,{'code' => "$license_id"}) if ( $license_id =~ /^[0-9]+$/); # Member
 
-#    return undef if (!$license);
     my $sql = 'UPDATE dtb_customer SET customer_kind_id=';
-    if ($license_id =~ /^(15|16)$/ ){ $sql .= 2;} # 有料会員1
-    if ($license_id == 17 ){$sql .= 3;} # 有料会員2
+    if ($license_id =~ /^(15|16)$/ ){ $sql .= CUSTOMER_KIND_CODE_1;} # 有料会員1
+    if ($license_id == 17 ){$sql .= CUSTOMER_KIND_CODE_2;} # 有料会員2
     $sql .=   " WHERE customer_id = $customer_id";
     my $ret = undef;
     local $@;
@@ -245,7 +234,6 @@ sub updateCustomer
 sub createMember
 {
     my ($pg,$customer_id,$license_id) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $sql = 'INSERT INTO dtb_customer_license (customer_id, license_id, create_date, update_date) VALUES ';
     $sql .=   "($customer_id,$license_id,'$dt','$dt' )";
@@ -270,7 +258,6 @@ sub createMember
 sub createOnline
 {
     my ($pg,$customer_id,$license_id) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $ret = undef;
     my $sql = 'INSERT INTO dtb_customer_license (customer_id, license_id, create_date, update_date) VALUES ';
@@ -284,7 +271,6 @@ sub createOnline
         $utils->logger($@);
         return undef;
     }
-    #$utils->logger($sql) if DEBUG==1;
     my $next = $pg->db->query("select nextval('dtb_customer_customer_id_seq')");
     my $nextv = $next->hash->{'nextval'};
     &updateCustomer($pg,$customer_id,$license_id) if ($license_id =~ /^(15|16|17)$/ );

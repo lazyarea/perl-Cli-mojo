@@ -6,19 +6,19 @@ use Mojo::Pg;
 use Text::CSV;
 use File::Copy;
 use ImportCsv::Commons::Config;
+use ImportCsv::Commons::Utils;
 use ImportCsv::Data::Base;
 use Moment;
 use Data::Dumper;
 
 use constant DEBUG => 0; # 1:true
+use constant LOG_FILE => 'ymst.log';
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
-};
+our $utils;
 
 sub new {
     my $class = shift;
@@ -30,8 +30,8 @@ sub load_csv_from_file
 {
     my $self = shift;
     my %res = ();
-    my $utils = ImportCsv::Commons::Utils->new;
-    my $file = $self->utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'YMSTMTRX');
+    $utils = ImportCsv::Commons::Utils->new('log_file_name' => LOG_FILE);
+    my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'YMSTMTRX');
     if ( !$file ) {
         $utils->logger("target not found.");
         exit 1;
@@ -87,7 +87,7 @@ sub load_csv_from_file
 sub truncateMtrx
 {
     my ($pg) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
+
     my $sql = 'TRUNCATE wktb_ymstmtrx';
     local $@;
     eval{
@@ -114,7 +114,7 @@ sub truncateMtrx
 sub createMtrx
 {
     my ($pg,$line) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
+
     my $sql = "INSERT INTO wktb_ymstmtrx (text) VALUES ('$line->[0]')";
     local $@;
     eval{
@@ -130,7 +130,7 @@ sub createMtrx
 sub insertMtrx
 {
     my $pg = shift;
-    my $utils = ImportCsv::Commons::Utils->new;
+
     my $cols = '';
     for( my $i=0; $i<305;$i++){$cols .= ',col'.$i;}
     $cols =~ s/^,//;
@@ -146,4 +146,3 @@ sub insertMtrx
 }
 
 1;
-

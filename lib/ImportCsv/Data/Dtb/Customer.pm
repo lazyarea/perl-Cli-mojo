@@ -8,28 +8,23 @@ use File::Copy;
 use ImportCsv::Data::Base;
 use ImportCsv::Data::Dtb::CustomerKind;
 use ImportCsv::Data::Mtb::BlackRank;
-#use ImportCsv::Data::Plg::Point;
-#use ImportCsv::Data::Plg::PointCustomer;
+use ImportCsv::Commons::Utils;
 use Moment;
 use Data::Dumper;
 use constant DEBUG => 0; # 1:true
+use constant LOG_FILE => 'customer.log';
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
-};
-
+our $utils;
 
 sub load_csv_from_file
 {
     my $self = shift;
     my %res = ();
-    my $utils = ImportCsv::Commons::Utils->new;
-    #my $po    = ImportCsv::Data::Plg::Point->new;
-    #my $pc    = ImportCsv::Data::Plg::PointCustomer->new;
+    $utils = ImportCsv::Commons::Utils->new('log_file_name' => LOG_FILE);
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'kihon');
     if ( !$file ) {
         $utils->logger("target not found.");
@@ -91,7 +86,6 @@ sub load_csv_from_file
         #$pg->db->query('ROLLBACK');
         $utils->logger('FAILED INSERT: '.$file);
         $utils->logger($@);
-        exit 1;
     }
     $csv->eof or $csv->error_diag();
     close $fh;
@@ -129,7 +123,6 @@ sub findCustomer
 {
     my ($pg,$cond,$limit) =@_;
     $limit = 1 if (!$limit);
-    my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'SELECT * FROM dtb_customer';
     $sql .= ' WHERE 1=1';
     for (keys $cond) {
@@ -156,7 +149,6 @@ sub findCustomer
 sub createMember
 {
     my ($pg,$line) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $sex = "null";
     if ($line->[1] == 1) {
@@ -181,6 +173,10 @@ sub createMember
     if ($line->[21]){
         my $b = ImportCsv::Data::Mtb::BlackRank->new;
         my $br = $b->get_black_rank_id($pg,$line->[21]);
+        if (!$br){
+            $utils->logger('data not found: get_black_rank_id');
+            return undef;
+        }
         $black=$br->{'id'};
     }
     # $line->[22]会員状況(2)
@@ -195,7 +191,7 @@ sub createMember
     my ($cols,$vals)='';
     # secret_key
     my $ramdom = $utils->generate_str();
-    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,craft_number,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,markup_rate,secret_key,black_rank) VALUES(';
+    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,customer_status_note,create_date,update_date,del_flg,client_code,craft_number,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,markup_rate,secret_key,black_rank) VALUES(';
     $sql .= "2, $sex, $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, null, '$line->[18]', $line->[0], $line->[23], $situation_id, $line->[0], 100.00, '$ramdom', $black) RETURNING customer_id;";
     my $ret = undef;
     local $@;
@@ -215,7 +211,6 @@ sub createMember
 sub createOnline
 {
     my ($pg,$line) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $sex = $line->[1];
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
@@ -248,7 +243,7 @@ sub createOnline
     }else{ $line->[23] = 1;}
     # secret_key
     my $ramdom = $utils->generate_str();
-    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,note,create_date,update_date,del_flg,client_code,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,markup_rate,secret_key,black_rank) VALUES(';
+    my $sql = 'INSERT INTO dtb_customer(status,sex,pref,name01,name02,kana01,kana02,company_name,company_name2,zip01,zip02,addr01,addr02,addr03,tel01,tel02,fax01,customer_status_note,create_date,update_date,del_flg,client_code,customer_type_id,customer_kind_id,customer_situation_id,customer_division_id,markup_rate,secret_key,black_rank) VALUES(';
     $sql .= "2, $sex, $line->[2], '$line->[3]', '$line->[4]', '$line->[5]', '$line->[6]', '$line->[7]', '$line->[8]', '$line->[9]', '$line->[10]', '$line->[11]', '$line->[12]', '$line->[13]', '$line->[14]', '$line->[15]', '$line->[16]', '$line->[24]', '$dt', '$dt', 0, '$line->[17]', $line->[0], $line->[23], $situation_id, $line->[0], 100.00, '$ramdom',$black) RETURNING customer_id;";
     my $ret = undef;
     local $@;
@@ -268,7 +263,6 @@ sub createOnline
 sub updateMember
 {
     my ($pg,$line) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $sex = "null";
     if ($line->[1] == 1) {
@@ -302,7 +296,7 @@ sub updateMember
     $sql .= "SET customer_situation_id=$situation_id,sex=$sex,pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
     $sql .= " kana02='$line->[6]',company_name='$line->[7]',company_name2='$line->[8]',zip01='$line->[9]',zip02='$line->[10]',";
     $sql .= "addr01='$line->[11]',addr02='$line->[12]',addr03='$line->[13]',tel01='$line->[14]',tel02='$line->[15]',fax01='$line->[16]',";
-    $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
+    $sql .= "customer_status_note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
     $sql .= " WHERE craft_number='$line->[18]'";
     my $ret = undef;
     local $@;
@@ -321,7 +315,6 @@ sub updateMember
 sub updateOnline
 {
     my ($pg,$line) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $sex = $line->[1];
     $sex = "null" if $line->[1] eq '';
@@ -357,7 +350,7 @@ sub updateOnline
     $sql .= "SET customer_situation_id=$situation_id,sex=$sex,pref=$line->[2],name01='$line->[3]',name02='$line->[4]',kana01='$line->[5]',";
     $sql .= " kana02='$line->[6]',company_name='$line->[7]',company_name2='$line->[8]',zip01='$line->[9]',zip02='$line->[10]',";
     $sql .= "addr01='$line->[11]',addr02='$line->[12]',addr03='$line->[13]',tel01='$line->[14]',tel02='$line->[15]',fax01='$line->[16]',";
-    $sql .= "note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
+    $sql .= "customer_status_note='$line->[24]',update_date='$dt',customer_type_id=$line->[0]";
     $sql .= " WHERE client_code='$line->[17]'";
     my $ret = undef;
     local $@;
@@ -374,4 +367,3 @@ sub updateOnline
 }
 
 1;
-

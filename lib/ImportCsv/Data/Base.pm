@@ -3,16 +3,13 @@ package ImportCsv::Data::Base;
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use Mojo::Pg;
-use ImportCsv::Commons::Utils;
+# use ImportCsv::Commons::Utils;
 use Data::Dumper;
 use constant DEBUG => 0;
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
-};
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
 };
 
 sub get_conenction
@@ -27,7 +24,7 @@ sub get_conenction
     };
     local $@;
     if ($@){
-        $self->utils->logger($@);
+        # $u->logger($@);
         exit 1;
     }
     &check_connected($pg);
@@ -36,8 +33,8 @@ sub get_conenction
 
 sub check_connected
 {
-    my $pg = shift;
-    my $utils = ImportCsv::Commons::Utils->new;
+    my ($pg) = @_;
+    # my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'SELECT version();';
     my $ret = undef;
     local $@;
@@ -45,12 +42,11 @@ sub check_connected
         $ret = $pg->db->query($sql);
     };
     if ($@) {
-        $utils->logger($sql);
-        $utils->logger($@);
+        # $utils->logger('DB connection error');
+        # $utils->logger($@);
         exit 1;
     }
 }
 
 
 1;
-

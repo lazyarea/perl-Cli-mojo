@@ -4,22 +4,23 @@ use Mojo::Base qw/Mojolicious::Command/;
 use Mojo::Log;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use constant DEBUG => 0;
-use constant DATA_DIR => '/var/www/doc/data';
-use constant LOG_DIR  => '/tmp';
-use constant LOG_FILE  => '/mojo.log';
 use Text::CSV;
 use Data::Dumper;
 use ImportCsv::Commons::Config;
 use Time::Piece;
+use Moment;
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
 
+our $log_file_name;
+
 sub new {
-    my $class = shift;
-    my $self = {};
+    my ($class, %args) = @_;
+    my $self = {%args};
+    $log_file_name = $self->{log_file_name};
     return bless $self, $class;
 }
 
@@ -28,7 +29,6 @@ sub get_file_name
     my ($self, $path, $fname ) = @_;
     chdir($path);
     my @file = glob "*.csv *.DAT *.dat)";
-    # warn Dumper join( "\t", @file ), "\n";
     foreach my $file (@file){
         if ($file =~ /$fname/i){
             return $file;
@@ -36,27 +36,18 @@ sub get_file_name
     }
 }
 
-#    my %valid = ();
-#    if ( my $res = &len('aaaaa', 3) ){
-#        $valid{'aaaaa'} = 'too long:'.$res;
-#    }
-#    if ( my $res = &len('bbbb', 3) ){
-#        $valid{'bbbb'} = 'too long:'.$res;
-#    }
-#    my $log = Mojo::Log->new;
-#    $log = Mojo::Log->new(path => '/tmp/mojo.log', level => 'info');
-#    $log->info(%valid);
-#    for(keys %valid){
-#        my $k=$_;
-#        my $v=$valid{$k};
-#        $log->info( "$k => $v");
-#    }
-#
 sub logger
 {
     my ($self,$data) = @_;
-    my $log = Mojo::Log->new(path => $self->commons_config->{'log'}->{'log_dir'}
-	.$self->commons_config->{'log'}->{'log_file'}, level => 'info');
+    my $fn;
+    if (!$log_file_name){
+        $fn = $self->commons_config->{'log'}->{'log_file'};
+    }else{
+        $fn = '/'.$log_file_name;
+    }
+    my $dt = Moment->now->get_d();
+    $fn =~ s/\.log/\_${dt}\.log/g;
+    my $log = Mojo::Log->new(path => $self->commons_config->{'log'}->{'log_dir'}.$fn, level => 'info');
     $log->info($data);
 }
 
@@ -171,28 +162,27 @@ sub validateMemberKihon
     my ($self,$line) = @_;
     my %valid = ();
     if ( &len($line->[3],20) ){
-        $valid{$line->[3]} = 'is too long.';
+        $valid{$line->[3]} = '[3] is too long.';
     }
     if ( &len($line->[4],20) ){
-        $valid{$line->[4]} = 'is too long.';
+        $valid{$line->[4]} = '[4] is too long.';
     }
     if ( &len($line->[5],20) ){
-        $valid{$line->[5]} = 'is too long.';
+        $valid{$line->[5]} = '[5] is too long.';
     }
     if ( &len($line->[6],20) ){
-        $valid{$line->[6]} = 'is too long.';
+        $valid{$line->[6]} = '[6] is too long.';
     }
 #    $line->[8] = &escape_quote($line->[8]);
 #    $line->[9] = &escape_quote($line->[9]);
-#    warn Dumper $line;
     if ( &len($line->[11],40) ){
-        $valid{$line->[11]} = 'is too long.';
+        $valid{$line->[11]} = '[11] is too long.';
     }
     if ( &len($line->[12],30) ){
-        $valid{$line->[12]} = 'is too long.';
+        $valid{$line->[12]} = '[12] is too long.';
     }
     if ( &len($line->[13],30) ){
-        $valid{$line->[13]} = 'is too long.';
+        $valid{$line->[13]} = '[13] is too long.';
     }
     if ( !$line->[18] ){
         $valid{$line->[18]} = 'craft_number is not exists.';
@@ -205,25 +195,25 @@ sub validateOnlineKihon
     my ($self,$line) = @_;
     my %valid = ();
     if ( &len($line->[3],20) ){
-        $valid{$line->[3]} = 'is too long.';
+        $valid{$line->[3]} = '[3] is too long.';
     }
     if ( &len($line->[4],20) ){
-        $valid{$line->[4]} = 'is too long.';
+        $valid{$line->[4]} = '[4] is too long.';
     }
     if ( &len($line->[5],20) ){
-        $valid{$line->[5]} = 'is too long.';
+        $valid{$line->[5]} = '[5] is too long.';
     }
     if ( &len($line->[6],20) ){
-        $valid{$line->[6]} = 'is too long.';
+        $valid{$line->[6]} = '[6] is too long.';
     }
     if ( &len($line->[11],40) ){
-        $valid{$line->[11]} = 'is too long.';
+        $valid{$line->[11]} = '[11] is too long.';
     }
     if ( &len($line->[12],30) ){
-        $valid{$line->[12]} = 'is too long.';
+        $valid{$line->[12]} = '[12] is too long.';
     }
     if ( &len($line->[13],30) ){
-        $valid{$line->[13]} = 'is too long.';
+        $valid{$line->[13]} = '[13] is too long.';
     }
     if ( !$line->[17] ){
         $valid{$line->[17]} = 'client_code is not exists.';
@@ -298,7 +288,7 @@ sub validateMemberPointHistory
 {
     my ($self,$line) = @_;
     my %valid = ();
-    # ƒ|ƒCƒ“ƒgŠm’è‹æ•ª
+    # ï¿½|ï¿½Cï¿½ï¿½ï¿½gï¿½mï¿½ï¿½ï¿½æ•ª
     if ( $line->[10] !~ /^[0-9]$/ ){
         $valid{$line->[10]} = 'is wrong pattern(1strings).';
     }
@@ -333,7 +323,7 @@ sub validateMemberPointHistory
     if ( $line->[9] !~ /^-?[0-9]{1,10}$/ ){
         $valid{$line->[9]} = 'is wrong pattern.';
     }
-    # “`•[ NO ‚ª–³‚¢ê‡‚à‘Î‰
+    # ï¿½`ï¿½[ NO ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ê‡ï¿½ï¿½ï¿½Î‰ï¿½
     if ( $line->[11] !~ /^([0-9]{8})?$/ ){
         $valid{$line->[11]} = 'is wrong pattern(8strings).';
     }
@@ -371,7 +361,7 @@ sub validateOnlinePointHistory
 sub yyyyMMdd2TimePiece
 {
 	my ($self,$str) = @_;
-	# ƒfƒŠƒ~ƒ^‚È‚µ‚¾‚Æ strptime ‚ªg‚¦‚È‚¢
+	# ãƒ‡ãƒªãƒŸã‚¿ãªã—ã ã¨ strptime ãŒä½¿ãˆãªã„
 	return Time::Piece->strptime(substr($str, 0, 4) . '-' . substr($str, 4, 2) . '-' . substr($str, 6, 2), '%Y-%m-%d');
 }
 

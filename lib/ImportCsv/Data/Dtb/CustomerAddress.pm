@@ -12,22 +12,19 @@ use Moment;
 use Data::Dumper;
 
 use constant DEBUG => 0; # 1:true
-#use constant DATA_DIR => '/var/www/doc/data';
-#use constant DATA_MOVED_DIR => '/var/www/doc/data/moved';
+use constant LOG_FILE => 'customer_address.log';
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
-};
+our $utils;
 
 sub load_csv_from_file
 {
     my $self = shift;
     my %res = ();
-    my $utils = ImportCsv::Commons::Utils->new;
+    $utils = ImportCsv::Commons::Utils->new('log_file_name' => LOG_FILE);
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'nohin');
     if ( !$file ) {
         $utils->logger("target not found.");
@@ -111,7 +108,6 @@ sub load_csv_from_file
 sub createCustomerAddress
 {
     my($pg, $line, $file, $del_flg) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $customer = &findCustomer($pg,$line,$file); #既存データ検索
     if ( !$customer ){
         $utils->logger("$line->[0],$line->[1],$line->[2],$line->[3]");
@@ -131,7 +127,6 @@ sub createCustomerAddress
 sub findCustomer
 {
     my ($pg,$line,$file) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'SELECT * FROM dtb_customer';
     if ($file =~ /^NVH_NOHIN/i) {
         $sql .= " WHERE craft_number='$line->[1]'" if $line->[1];
@@ -153,7 +148,6 @@ sub findCustomer
 
 sub deleteCustomerAddress{
     my ($pg,$customer) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $sql = 'DELETE FROM dtb_customer_address ';
     $sql   .= " WHERE customer_id = '$customer->{'customer_id'}'";
     my $ret = undef;
@@ -171,7 +165,6 @@ sub deleteCustomerAddress{
 sub createMemberNohin
 {
     my ($pg,$line,$data) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     my $sql = 'INSERT INTO dtb_customer_address(';
@@ -200,7 +193,6 @@ sub createMemberNohin
 sub createOnlineNohin
 {
     my ($pg,$line,$data) =@_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     my $pref = ImportCsv::Data::Mtb::Pref->new;

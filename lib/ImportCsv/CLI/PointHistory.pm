@@ -2,7 +2,6 @@ package ImportCsv::CLI::PointHistory;
 
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
-use ImportCsv::Commons::Utils;
 use ImportCsv::Data::Dtb::PointHistory;
 
 use constant DEBUG => 0;
@@ -32,6 +31,5 @@ sub run {
     my $p = new ImportCsv::Data::Dtb::PointHistory();
     my $res = $p->load_csv_from_file();
 };
-
 
 1;

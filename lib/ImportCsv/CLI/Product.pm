@@ -2,7 +2,6 @@ package ImportCsv::CLI::Product;
 
 use Mojo::Base qw/Mojolicious::Command/;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
-use ImportCsv::Commons::Utils;
 use ImportCsv::Data::Dtb::Product;
 
 use constant DEBUG => 0;
@@ -24,7 +23,6 @@ sub run {
     if ($debug) {
         # $self->appでMojolicious(::Lite)インスタンスが取得できます。
         say "MOJO_HOME: " . $self->app->home;
-        say "MOJO_MODE: " . $self->app->mode;
         say "---";
     }
 
@@ -35,4 +33,3 @@ sub run {
 
 
 1;
-

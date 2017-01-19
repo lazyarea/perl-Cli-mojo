@@ -13,14 +13,11 @@ has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
-};
 
 sub get_black_rank_id
 {
     my ($self, $pg, $val) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
+    # my $utils = ImportCsv::Commons::Utils->new;
     my $sql = "SELECT id from mtb_black_rank WHERE name like '$val%'";
     my $ret = undef;
     local $@;
@@ -28,8 +25,8 @@ sub get_black_rank_id
         $ret = $pg->db->query($sql);
     };
     if ($@) {
-        $utils->logger($sql);
-        $utils->logger($@);
+        # $utils->logger($sql);
+        # $utils->logger($@);
     }
     my $hash = $ret->hash;
     return $hash;

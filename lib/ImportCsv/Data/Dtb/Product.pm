@@ -7,16 +7,15 @@ use Text::CSV;
 use File::Copy;
 use ImportCsv::Data::Base;
 use ImportCsv::Data::Dtb::ProductStock;
+use ImportCsv::Commons::Utils;
 use Moment;
 use Data::Dumper;
 use constant DEBUG => 0; # 1:true
+use constant LOG_FILE => 'product.log';
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
-};
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
 };
 has member_kubun => sub{
     my %kubun = ('01' => 0, '02' => 1, '03' => 1, '04' => 1, '99' => 99);
@@ -27,11 +26,13 @@ has online_kubun => sub{
     return \%kubun;
 };
 
+our $utils;
+
 sub load_csv_from_file
 {
     my $self = shift;
     my %res = ();
-    my $utils = ImportCsv::Commons::Utils->new;
+    $utils = ImportCsv::Commons::Utils->new('log_file_name' => LOG_FILE);
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'shohin');
     if ( !$file ) {
         $utils->logger("target not found.");
@@ -130,7 +131,6 @@ sub create_or_updateProductClass
 sub create_or_updateProductStock
 {
     my ($pg, $line, $prod_id, $prod_class_id) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
     # 更新対象のstockを探す
     my $stock = ImportCsv::Data::Dtb::ProductStock->new;
     my $st_dta = undef;
@@ -154,7 +154,6 @@ sub create_or_updateProductStock
 sub createProduct
 {
     my($pg, $line) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $sql = 'INSERT INTO dtb_product';
     $sql   .= " (creator_id, status, name, note, description_list, description_detail, search_word, free_area, del_flg, create_date, update_date, catalog_product_code, start_datetime, end_datetime, point_flg, title1, title2, title3, title4, title5, title6, detail1, detail2, detail3, detail4, detail5, detail6, product_master_name, product_genre_id, set_product_flg, product_division_id, product_handling_division_id, soldout_notices, flight_not_flg, product_markup_rate_id, shipping_fee_type_id ) VALUES (";
@@ -177,7 +176,6 @@ sub createProduct
 sub updateProduct
 {
     my($pg, $line) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $prod = &findProduct($pg,$line);
     my $sql = 'UPDATE dtb_product';
@@ -200,7 +198,6 @@ sub createProductClass
 {
     my($pg,$line,$prod_id) = @_;
     return undef if (!$prod_id);
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
 
     my $next = $pg->db->query("select nextval('dtb_product_class_product_class_id_seq')");
@@ -227,7 +224,6 @@ sub updateProductClass
 {
     my($pg,$line,$prod_id) = @_;
 #    return undef if (!$prod_id);
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $sql = undef;
     if ($line->[6]){
@@ -257,7 +253,6 @@ sub createProductStock
 {
     my($pg,$line,$prod_id,$prod_class_id) = @_;
     return undef if (!$prod_id || !$prod_class_id);
-    my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $sql = 'INSERT INTO public.dtb_product_stock';
     $sql .= ' (product_class_id, creator_id, stock, create_date, update_date) VALUES ';
@@ -277,7 +272,6 @@ sub createProductStock
 sub updateProductStock
 {
     my($pg,$line) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
     #----------------
     my $sql = "select s.* from dtb_product_class AS c";
     $sql .= " LEFT JOIN dtb_product_stock AS s ON c.product_class_id = s.product_class_id";
@@ -320,4 +314,3 @@ sub findProduct
 #}
 
 1;
-

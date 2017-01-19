@@ -4,30 +4,31 @@ use Data::Dumper;
 use File::Copy;
 use Getopt::Long qw(GetOptionsFromArray :config no_auto_abbrev no_ignore_case);
 use ImportCsv::Data::Base;
+use ImportCsv::Commons::Utils;
 use Mojo::Base qw/Mojolicious::Command/;
 use Mojo::Pg;
 use Moment;
 use Text::CSV;
 use Time::Seconds;
 
-use constant DEBUG => 1;                # 1:true
+use constant DEBUG => 0;                # 1:true
 use constant POINT_STATUS_FIX => 1;
 use constant POINT_TYPE_ADD => 3;
 use constant POINT_TYPE_USE => 4;
+use constant DTB_POINT_STATUS_DONE => 2; #(+)付与済
+use constant LOG_FILE => 'point.log';
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-    return ImportCsv::Commons::Utils->new;
-};
+our $utils;
 
 sub load_csv_from_file
 {
     my $self = shift;
     my %res = ();
-    my $utils = ImportCsv::Commons::Utils->new;
+    $utils = ImportCsv::Commons::Utils->new('log_file_name' => LOG_FILE);
     my $file = $utils->get_file_name($self->commons_config->{'data'}->{'data_dir'}, 'point');
     if ( !$file ) {
         $utils->logger("target not found.");
@@ -74,7 +75,7 @@ sub load_csv_member
 
         while ( my $row = $csv->getline( $fh ) ) {
             if ($c==0) { $c++; next; }
-            next if ($row->[10] != 1);
+            next if ($row->[10] !~ /[1-2]/);
             #----------------------------
             # validate start
             #----------------------------
@@ -113,7 +114,6 @@ sub load_csv_member
     if ($@) {
         $utils->logger('FAILED INSERT: '.$file);
         $utils->logger($@);
-        exit 1;
     }
 }
 
@@ -150,7 +150,6 @@ sub load_csv_online
             #my $errorFilePath = get_error_file_path($self, $file);
             #register_online($errorFilePath, $utils, $pg, $data);
             my $ret = register_online(undef, $utils, $pg, $data);
-            warn Dumper $ret;
             if ( ref $ret){
                 $ret->{line_no} = $c;
                 for( keys $ret){ $utils->logger( $_.": ".$ret->{$_});}
@@ -161,7 +160,6 @@ sub load_csv_online
     if ($@) {
         $utils->logger('FAILED INSERT: '.$file);
         $utils->logger($@);
-        exit 1;
     }
 }
 
@@ -177,7 +175,7 @@ sub get_fix_point_num
     LEFT JOIN plg_point_customer AS pc on p.plg_point_customer_id = pc.plg_point_customer_id
     INNER JOIN plg_point_status  AS ps on pc.plg_point_customer_id = ps.plg_point_customer_id
     WHERE 1=1
-    AND p.customer_id = ? AND ps.status = 1";
+    AND p.customer_id = ? AND ps.status = 1 AND ps.del_flg = 0";
     my $ret = $pg->db->query($sql,$customer_id);
     return $ret->hash->{point_sum} if ($ret->rows > 0);
     # warn Dumper $sql;
@@ -217,6 +215,7 @@ sub parse_member
             point_allocation => $line->[7],
             plg_point_use => $line->[8],
             plg_point_add => $line->[9],
+            plg_point_kbn => $line->[10],
             rrr_order_no => $line->[11],
             order_date => $line->[12],
             uri_date => $line->[13]};
@@ -264,35 +263,37 @@ sub register_member
     if ($@) {
         $utils->logger('ERROR: Failed to register member. customer_id: ' . $customerId . ' craft_number: ' . $craftNumber);
         $utils->logger($@);
-        exit 1;
     }
+    kakutei_kbn2($pg,$utils,$dataList);
 }
 
 sub register_online
 {
     my ($errorFilePath, $utils, $pg, $data) = @_;
+    my $customer_id = get_customer_id_by_client_code($pg,$data->{client_code});
     my %valid = ();
-    my $point_snapshot= get_rrr_order_no_from_snapshot($pg, $data);
+    my $point_snapshot= get_rrr_order_no_from_snapshot($pg, $data,$customer_id);
     if ( !$point_snapshot  ){
-        $valid{message} = 'client_code:'.$data->{client_code}.' AND rrr_order_no: '
+        $valid{message} = 'customer_id:'.$customer_id.' AND rrr_order_no: '
         .$data->{rrr_order_no}.' is not found from plg_point_snapshot';
         return \%valid;
     }
-#    update_point_snapshots($utils, $pg, $data);
-    update_point_status($utils, $pg, $data);
-    my $customer_id = get_customer_id_by_client_code($pg,$data->{client_code});
-    my $cur_plg_point_customer = get_last_point_customer($pg, $customer_id); #　紐づけ前のplg_point_customerから最後のレコード抽出
-    my $plg_point_customer_id = calculate_point($utils, $pg, $data, $point_snapshot); # 保有ポイント再計算後、plg_point_customerへ最新データを作る
 
-    warn Dumper $customer_id;
-    warn Dumper $cur_plg_point_customer;
-    warn Dumper $plg_point_customer_id;
-
-    # plg_point, plg_point_snapshot, plg_point_status のplg_point_customer_idを$plg_point_customer_idへ変える。
-    rebind_plg_point($pg, {'new_customer_id' => , 'cur_customer_id' => $cur_plg_point_customer});
-
-=pod
     local $@;
+    eval{
+        update_point_status($utils, $pg, $data,$customer_id);
+
+        my $cur_plg_point_customer = get_last_point_customer($pg, $customer_id); #　紐づけ前のplg_point_customerから最後のレコード抽出
+        my $plg_point_customer_id = calculate_point($utils, $pg, $data, $point_snapshot); # 保有ポイント再計算後、plg_point_customerへ最新データを作る
+        # plg_point, plg_point_snapshot, plg_point_status のplg_point_customer_idを$plg_point_customer_idへ変える。
+        rebind_plg_point($pg, {'new_plg_point_customer_id' => $plg_point_customer_id, 'cur_plg_point_customer_id' => $cur_plg_point_customer->{plg_point_customer_id}});
+        ch_dtb_point_stat($pg, $customer_id,{'new_plg_point_customer_id' => $plg_point_customer_id});
+    };
+    if ($@) {
+        $utils->logger($@);
+        return {'message' => "Failed at 'sub register_online'"};
+    }
+=pod
     eval {
         my $count = update_point_status($utils, $pg, $data);
         write_online_error($errorFilePath, $data) if ($count == 0);
@@ -307,11 +308,48 @@ sub register_online
 =cut
 }
 
+sub kakutei_kbn2
+{
+    my ($pg,$utils,$dataList) = @_;
+    my $find_cust = 'SELECT plg_point_customer_id FROM plg_point_snapshot WHERE rrr_order_no = ?';
+    my $updt_stat = 'UPDATE plg_point_status SET del_flg = 1 WHERE plg_point_customer_id = ?';
+#    my $customer_id = -1;
+
+    foreach my $d (@$dataList) {
+        next if ($d->{plg_point_kbn} != 2);
+        my $plg_point_customer_id = $pg->db->query($find_cust,($d->{rrr_order_no}));
+        $pg->db->query($updt_stat,($plg_point_customer_id->hash->{plg_point_customer_id}));
+#        my $customer_id = get_customer_id_by_craft_number($pg,$d->{craft_number});
+#warn Dumper get_fix_point_num($pg, $customer_id);
+    }
+}
+
+=pod
+plg_point, plg_point_snapshot, plg_point_status のplg_point_customer_idを$plg_point_customer_idへ変える。
+=cut
 sub rebind_plg_point
 {
     my ($pg,$data) = @_;
-    warn Dumper "rebind_plg_point";
-    warn Dumper $data;
+    $pg->db->query('UPDATE plg_point_status SET plg_point_customer_id = ? WHERE plg_point_customer_id = ?',
+        ($data->{new_plg_point_customer_id},$data->{cur_plg_point_customer_id}));
+    $pg->db->query('UPDATE plg_point_snapshot SET plg_point_customer_id = ? WHERE plg_point_customer_id = ?',
+        ($data->{new_plg_point_customer_id},$data->{cur_plg_point_customer_id}));
+    $pg->db->query('UPDATE plg_point SET plg_point_customer_id = ? WHERE plg_point_customer_id = ?',
+        ($data->{new_plg_point_customer_id},$data->{cur_plg_point_customer_id}));
+}
+
+sub ch_dtb_point_stat
+{
+    my ($pg, $customer_id,$data) = @_;
+    my $sql = "UPDATE plg_point SET dtb_point_status_id = ".DTB_POINT_STATUS_DONE." WHERE 1=1 AND plg_point_customer_id = ? AND dtb_point_status_id = 1";
+    local $@;
+    eval{
+        $pg->db->query($sql,($data->{new_plg_point_customer_id}));
+    };
+    if ( $@){
+        # my $utils = ImportCsv::Commons::Utils->new;
+        $utils->logger($@);
+    }
 }
 
 sub get_customer_id_by_craft_number
@@ -385,6 +423,7 @@ sub register_point_customers
 
     foreach my $d (@$pointData)
     {
+        next if ($d->{plg_point_kbn} == 2);
         my $id = register_point_customer($utils, $pg, $customerId, $d);
         return 0 if ($id == -1);
         $d->{'plg_point_customer_id'} = $id;
@@ -438,6 +477,7 @@ EOS
     my @params = ();
 
     foreach my $d (@$pointData) {
+        next if ($d->{plg_point_kbn} == 2);
         my $value = <<'EOS';
 (nextval('plg_point_snapshot_plg_point_snapshot_id_seq')
 , ?
@@ -491,10 +531,11 @@ EOS
     my @params = ();
 
     foreach my $d (@$pointData) {
+        next if ($d->{plg_point_kbn} == 2);
         push(@values, "(nextval('plg_point_status_point_status_id_seq'), ?, ?, ?, ?, ?, ?)");
         my $fixDate = $utils->yyyyMMdd2TimePiece($d->{uri_date});
         push(@params, $customerId, POINT_STATUS_FIX, $fixDate->strftime('%Y-%m-%d'),
-             $d->{plg_point_customer_id}, $d->{order_id}, ($fixDate + ONE_YEAR)->strftime('%Y-%m-%d'));
+             $d->{plg_point_customer_id}, $d->{order_id}, ($fixDate + ONE_YEAR - ONE_DAY)->strftime('%Y-%m-%d 23:59:59'));
     }
 
     my $ret = $pg->db->query($sql . join(',', @values), @params);
@@ -529,6 +570,7 @@ EOS
     my @params = ();
 
     foreach my $d (@$pointData) {
+        next if ($d->{plg_point_kbn} == 2);
         my $pointStatusCode = int($d->{point_status_code});
         push(@values, "(nextval('plg_point_plg_point_id_seq'), ?, ?, ?, ?, ?, 'CSV', now(), now(), ?, ?)");
         push(@params, $d->{order_id}, $customerId, $plgPointInfoId, $d->{plg_point_use},
@@ -567,18 +609,18 @@ sub calculate_point
 
 sub update_point_status
 {
-    my ($utils, $pg, $data) = @_;
+    my ($utils, $pg, $data, $customer_id) = @_;
 
     my $sql = <<'EOS';
 UPDATE plg_point_status SET
   status = ?, point_fix_date = ?
 WHERE
   plg_point_customer_id IN (SELECT plg_point_customer_id
-    FROM plg_point_snapshot WHERE client_code = ? AND rrr_order_no = ?)
+    FROM plg_point_snapshot WHERE customer_id = ? AND rrr_order_no = ?)
 EOS
 
     my $ret = $pg->db->query($sql, (POINT_STATUS_FIX, $utils->yyyyMMdd2TimePiece($data->{uri_date})->strftime('%Y-%m-%d'),
-                                   $data->{client_code}, $data->{rrr_order_no}));
+            $customer_id, $data->{rrr_order_no}));
     return $ret->rows;
 }
 
@@ -601,13 +643,13 @@ sub update_point_status_re
 sub update_point_snapshots
 {
     my ($utils, $pg, $data) = @_; # いらなくなった感じ
-    my $sql = 'update plg_point_snapshot SET plg_point_add = ? WHERE rrr_order_no = ? AND client_code = ?';
-    my $ret = $pg->db->query($sql, ($data->{plg_point_add}, $data->{rrr_order_no}, $data->{client_code}));
+#    my $sql = 'update plg_point_snapshot SET plg_point_add = ? WHERE rrr_order_no = ? AND client_code = ?';
+#    my $ret = $pg->db->query($sql, ($data->{plg_point_add}, $data->{rrr_order_no}, $data->{client_code}));
 }
 
 sub create_point_customer{
     my ($pg,$data) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
+    # my $utils = ImportCsv::Commons::Utils->new;
     my $dt = Moment->now->get_dt();
     my $nextval = $pg->db->query("SELECT nextval('plg_point_customer_plg_point_customer_id_seq')");
     my $sql = 'INSERT INTO plg_point_customer(plg_point_customer_id,customer_id, plg_point_current,
@@ -627,10 +669,10 @@ sub create_point_customer{
 
 sub get_rrr_order_no_from_snapshot
 {
-    my ($pg,$data) = @_;
+    my ($pg,$data,$customer_id) = @_;
     return undef if ( !$data->{rrr_order_no});
-    my $sql = 'SELECT * FROM plg_point_snapshot WHERE rrr_order_no = ? AND client_code = ?';
-    my $ret = $pg->db->query($sql, ($data->{rrr_order_no}, $data->{client_code}));
+    my $sql = 'SELECT * FROM plg_point_snapshot WHERE customer_id = ? AND rrr_order_no = ?';
+    my $ret = $pg->db->query($sql, ($customer_id,$data->{rrr_order_no}));
     my $hash = $ret->hash;
     if ( !$hash ){
         return undef;
@@ -657,7 +699,7 @@ sub get_error_file_path
 sub write_online_error
 {
     my ($errorFilePath, $data) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
+    # my $utils = ImportCsv::Commons::Utils->new;
     for(keys $data){
         my $k=$_;
         my $v=$data->{$k};

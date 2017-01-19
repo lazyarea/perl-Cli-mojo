@@ -15,9 +15,6 @@ has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
-};
 
 sub find
 {
@@ -34,4 +31,3 @@ sub find
 
 
 1;
-
