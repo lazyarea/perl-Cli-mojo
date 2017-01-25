@@ -11,21 +11,20 @@ use threads ('yield',
              'stack_size' => 64*4096,
              'exit' => 'threads_only',
              'stringify');
+use threads::shared;
 use Thread::Queue;
-use constant MAX_THREADS_NUM => 5;
-use constant COLLECT_WAIT_INTV => 30000; # cllect data interval
+use constant MAX_THREADS_NUM => 4;
+use constant COLLECT_WAIT_INTV => 50000; # cllect data interval
 use constant DEBUG => 1; # 1:true
 
 has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
-};
 
-our $pg;
+our $utils;
 our $queue;
+#our $pg;
 
 sub new
 {
@@ -38,12 +37,14 @@ sub new
 sub threads_if
 {
     my $self = shift;
-    my $utils = ImportCsv::Commons::Utils->new;
+    $utils = ImportCsv::Commons::Utils->new;
+    my $conn = ImportCsv::Data::Base->new;
+    my $pg = $conn->get_conenction();
     my $dt = Moment->now->get_dt();
 
     # collect data
     $queue = new Thread::Queue;
-    my $file = '/home/lazyarea/GITWORKS/perl-Cli-mojo/data/sample.txt';
+    my $file = '/var/www/doc/data/YMSTTIME.DAT';
     my $csv = Text::CSV->new ( { binary => 1 } ) or die "Cannot use CSV: ".Text::CSV->error_diag();
     open my $fh, "<:encoding(shiftjis)", $file or die "$file: $!";
     my $c=0;
@@ -76,7 +77,8 @@ sub my_thread
 {
     my $i = shift;
     while( my $q = $queue->dequeue){
-        print "Thread $i($q)\n";
+#        print "Thread $i($q)\n";
+#        create_data($pg,$q);
         threads->yield();
         sleep 1/10;
     }
@@ -95,6 +97,8 @@ sub my_thread1
 
 sub create_data
 {
-    my $self = shift;
+    my ($pg,$d) = @_;
+    my $sql = 'INSERT INTO wktb_ymsttime(text)VALUES(?)';
+    $pg->db->query($sql,($d));
 }
 1;

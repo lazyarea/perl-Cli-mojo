@@ -15,14 +15,20 @@ has commons_config => sub {
     my $config = ImportCsv::Commons::Config->new;
     $config->load_config();
 };
-has utils => sub{
-     return ImportCsv::Commons::Utils->new;
-};
+
+our $log_file_name;
+
+sub new {
+    my ($class, %args) = @_;
+    my $self = {%args};
+    $log_file_name = $self->{log_file_name};
+    return bless $self, $class;
+}
 
 sub get_pref_id
 {
     my ($self, $pg, $val) = @_;
-    my $utils = ImportCsv::Commons::Utils->new;
+    my $utils = ImportCsv::Commons::Utils->new('log_file_name' => $log_file_name);
     my $sql = "SELECT id from mtb_pref WHERE name = '$val'";
     my $ret = undef;
     local $@;

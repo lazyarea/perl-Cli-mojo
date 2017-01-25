@@ -165,7 +165,7 @@ sub deleteCustomerAddress{
 sub createMemberNohin
 {
     my ($pg,$line,$data) =@_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     my $sql = 'INSERT INTO dtb_customer_address(';
     $sql .= 'customer_id,pref,name01,name02,kana01,kana02,company_name,zip01,zip02,zipcode,';
@@ -193,9 +193,9 @@ sub createMemberNohin
 sub createOnlineNohin
 {
     my ($pg,$line,$data) =@_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
-    my $pref = ImportCsv::Data::Mtb::Pref->new;
+    my $pref = ImportCsv::Data::Mtb::Pref->new('log_file_name' => LOG_FILE);
     my $pref_dta = $pref->get_pref_id($pg, $line->[3]);
     if (!$pref_dta){
         $utils->logger($line->[3].' is pref ?');

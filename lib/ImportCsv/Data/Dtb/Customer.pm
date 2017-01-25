@@ -149,7 +149,7 @@ sub findCustomer
 sub createMember
 {
     my ($pg,$line) =@_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $sex = "null";
     if ($line->[1] == 1) {
         $sex = 2;
@@ -211,7 +211,7 @@ sub createMember
 sub createOnline
 {
     my ($pg,$line) =@_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $sex = $line->[1];
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}
     # 性別
@@ -263,7 +263,7 @@ sub createOnline
 sub updateMember
 {
     my ($pg,$line) =@_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $sex = "null";
     if ($line->[1] == 1) {
         $sex = 2;
@@ -315,7 +315,7 @@ sub updateMember
 sub updateOnline
 {
     my ($pg,$line) =@_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $sex = $line->[1];
     $sex = "null" if $line->[1] eq '';
     for(my $i=0; $i< keys $line; $i++) {$line->[$i] =~ s/'/''/g;}

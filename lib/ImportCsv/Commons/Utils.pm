@@ -45,7 +45,7 @@ sub logger
     }else{
         $fn = '/'.$log_file_name;
     }
-    my $dt = Moment->now->get_d();
+    my $dt = Moment->now->plus(hour=>9)->get_d();
     $fn =~ s/\.log/\_${dt}\.log/g;
     my $log = Mojo::Log->new(path => $self->commons_config->{'log'}->{'log_dir'}.$fn, level => 'info');
     $log->info($data);

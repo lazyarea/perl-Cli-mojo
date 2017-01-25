@@ -213,7 +213,7 @@ sub updateCustomer
 {
     my ($pg,$customer_id,$license_id) =@_;
     return undef if ($license_id !~ /^(15|16|17)$/ );
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
 
     my $sql = 'UPDATE dtb_customer SET customer_kind_id=';
     if ($license_id =~ /^(15|16)$/ ){ $sql .= CUSTOMER_KIND_CODE_1;} # 有料会員1
@@ -234,7 +234,7 @@ sub updateCustomer
 sub createMember
 {
     my ($pg,$customer_id,$license_id) =@_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $sql = 'INSERT INTO dtb_customer_license (customer_id, license_id, create_date, update_date) VALUES ';
     $sql .=   "($customer_id,$license_id,'$dt','$dt' )";
     my $ret = undef;
@@ -258,7 +258,7 @@ sub createMember
 sub createOnline
 {
     my ($pg,$customer_id,$license_id) =@_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $ret = undef;
     my $sql = 'INSERT INTO dtb_customer_license (customer_id, license_id, create_date, update_date) VALUES ';
     $sql .=   "($customer_id,$license_id,'$dt','$dt' )";

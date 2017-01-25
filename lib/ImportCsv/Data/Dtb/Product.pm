@@ -154,7 +154,7 @@ sub create_or_updateProductStock
 sub createProduct
 {
     my($pg, $line) = @_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $sql = 'INSERT INTO dtb_product';
     $sql   .= " (creator_id, status, name, note, description_list, description_detail, search_word, free_area, del_flg, create_date, update_date, catalog_product_code, start_datetime, end_datetime, point_flg, title1, title2, title3, title4, title5, title6, detail1, detail2, detail3, detail4, detail5, detail6, product_master_name, product_genre_id, set_product_flg, product_division_id, product_handling_division_id, soldout_notices, flight_not_flg, product_markup_rate_id, shipping_fee_type_id ) VALUES (";
     $sql .= "2, 2, '$line->[0]', null, null, null, null, null, 0, '$dt', '$dt', '$line->[6]', '1970-01-01 00:00:00.000000', '2099-01-01 00:00:00.000000', 0,  null, null, null, null, null, null, null, null, null, null, null, null, '$line->[0]', 0, $line->[1], $line->[2], $line->[3], '$line->[10]', $line->[4], 1, 0)";
@@ -176,10 +176,10 @@ sub createProduct
 sub updateProduct
 {
     my($pg, $line) = @_;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $prod = &findProduct($pg,$line);
     my $sql = 'UPDATE dtb_product';
-    $sql .= " SET name='$line->[0]', product_master_name='$line->[0]',set_product_flg=$line->[1], product_division_id=$line->[2], product_handling_division_id=$line->[3],flight_not_flg=$line->[4], product_markup_rate_id=1,soldout_notices='$line->[10]'";
+    $sql .= " SET product_master_name='$line->[0]',set_product_flg=$line->[1], product_division_id=$line->[2], product_handling_division_id=$line->[3],flight_not_flg=$line->[4], soldout_notices='$line->[10]'";
     $sql .= " WHERE product_id=".$prod->{'product_id'};
     #$utils->logger($sql) if DEBUG==1;
 
@@ -198,7 +198,7 @@ sub createProductClass
 {
     my($pg,$line,$prod_id) = @_;
     return undef if (!$prod_id);
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
 
     my $next = $pg->db->query("select nextval('dtb_product_class_product_class_id_seq')");
     my $nextv = $next->hash->{'nextval'};
@@ -224,7 +224,7 @@ sub updateProductClass
 {
     my($pg,$line,$prod_id) = @_;
 #    return undef if (!$prod_id);
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $sql = undef;
     if ($line->[6]){
         $sql = "select * from dtb_product_class where product_code='$line->[6]'";
@@ -253,7 +253,7 @@ sub createProductStock
 {
     my($pg,$line,$prod_id,$prod_class_id) = @_;
     return undef if (!$prod_id || !$prod_class_id);
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $sql = 'INSERT INTO public.dtb_product_stock';
     $sql .= ' (product_class_id, creator_id, stock, create_date, update_date) VALUES ';
     $sql .= "  ( $prod_class_id, 2, $line->[7], '$dt', '$dt')";
@@ -280,7 +280,7 @@ sub updateProductStock
     my $query = $pg->db->query($sql);
     my $hash  = $query->hash;
     #----------------
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     $sql=undef;
     $sql = 'UPDATE dtb_product_stock';
     $sql .= " SET stock=$line->[7],update_date='$dt'";

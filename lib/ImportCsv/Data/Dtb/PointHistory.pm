@@ -498,7 +498,7 @@ EOS
 , ?)
 EOS
         push(@values, $value);
-        push(@params, $d->{order_id}, $customerId, $d->{plg_point_use}, $d->{plg_point_current}, $d->{plg_point_add},
+        push(@params, $d->{order_id}, $customerId, abs($d->{plg_point_use}), abs($d->{plg_point_current}), abs($d->{plg_point_add}),
              $d->{plg_point_before}, $d->{order_date}, $d->{uri_date}, $d->{point_allocation}, $d->{seq_history},
              $d->{plg_point_customer_id}, $d->{rrr_order_no}, $d->{craft_number});
     }
@@ -650,7 +650,7 @@ sub update_point_snapshots
 sub create_point_customer{
     my ($pg,$data) = @_;
     # my $utils = ImportCsv::Commons::Utils->new;
-    my $dt = Moment->now->get_dt();
+    my $dt = Moment->now->plus(hour=>9)->get_dt();
     my $nextval = $pg->db->query("SELECT nextval('plg_point_customer_plg_point_customer_id_seq')");
     my $sql = 'INSERT INTO plg_point_customer(plg_point_customer_id,customer_id, plg_point_current,
          create_date,update_date) VALUES (?,?,?,?,?)';
